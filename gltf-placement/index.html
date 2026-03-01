@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Import glTF 3D Models | Sample | ArcGIS Maps SDK for JavaScript</title>
+
+    <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+    <script type="module" src="https://js.arcgis.com/5.0/"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+
+      calcite-panel {
+        max-width: 320px;
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
+      }
+
+      calcite-block {
+        margin-block: 0;
+        --calcite-font-size--2: 0.95rem;
+      }
+
+      #credits {
+        font-size: 0.75em;
+        line-height: 1.1em;
+      }
+
+      #codeSnippet {
+        font-size: 0.72em;
+        white-space: pre-wrap;
+        word-break: break-all;
+        background: #f4f4f4;
+        padding: 8px;
+        border-radius: 4px;
+        max-height: 180px;
+        overflow-y: auto;
+        margin: 4px 0 8px;
+      }
+
+      .mask-actions {
+        display: flex;
+        gap: 4px;
+        padding-inline: 12px;
+        padding-block: 4px;
+      }
+
+      #snippetContainer {
+        padding-inline: 12px;
+        padding-block-end: 8px;
+      }
+
+      #snippetContainer p {
+        margin: 8px 0 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+      }
+
+      #uploadedModelControls {
+        padding-inline: 12px;
+        padding-block: 6px 8px;
+      }
+
+      #uploadedModelControls p {
+        margin: 0 0 6px;
+        font-size: 0.8em;
+      }
+
+      #placedModelSnippet {
+        padding-inline: 12px;
+        padding-block-end: 8px;
+      }
+
+      #placedModelSnippet p {
+        margin: 8px 0 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+      }
+
+      #placedModelCode {
+        font-size: 0.72em;
+        white-space: pre-wrap;
+        word-break: break-all;
+        background: #f4f4f4;
+        padding: 8px;
+        border-radius: 4px;
+        max-height: 240px;
+        overflow-y: auto;
+        margin: 4px 0 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <arcgis-scene
+      basemap="topo-3d"
+      ground="world-elevation"
+      zoom="18.31"
+      camera-position="2.295944958834, 48.850780499397, 469.23"
+      camera-tilt="60.19"
+      camera-heading="356.865536"
+    >
+      <arcgis-search slot="top-left"></arcgis-search>
+      <arcgis-zoom slot="top-left"></arcgis-zoom>
+      <arcgis-navigation-toggle slot="top-left"></arcgis-navigation-toggle>
+      <arcgis-compass slot="top-left"></arcgis-compass>
+      <calcite-panel slot="top-right">
+        <calcite-tabs>
+          <calcite-tab-nav slot="title-group">
+            <calcite-tab-title icon-start="pin-plus" selected>Models</calcite-tab-title>
+            <calcite-tab-title icon-start="filter">Mask</calcite-tab-title>
+          </calcite-tab-nav>
+
+          <!-- ── Models tab ────────────────────────────────────────── -->
+          <calcite-tab selected>
+            <calcite-block
+              label="Preset models"
+              description="Select a symbol and place it in the scene:"
+              expanded>
+              <calcite-label>
+                <calcite-button id="tent" width="full">Tent</calcite-button>
+              </calcite-label>
+              <calcite-label>
+                <calcite-button id="canoe" width="full">Canoe</calcite-button>
+              </calcite-label>
+              <p id="credits">
+                Tent and canoe glTF models from
+                <a href="https://www.kenney.nl/assets/" target="_blank">Kenney game assets</a> under
+                <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0 Universal</a>.
+              </p>
+            </calcite-block>
+
+            <calcite-block
+              label="Custom glTF model"
+              description="Upload a local .glb and place it in the scene:"
+              expanded>
+              <calcite-label>
+                <calcite-button id="uploadModel" width="full" icon-start="attachment">Choose .glb / .gltf</calcite-button>
+              </calcite-label>
+              <input type="file" id="modelFileInput" accept=".glb,.gltf" hidden>
+              <div id="uploadedModelControls" hidden>
+                <p>File: <span id="uploadedModelName"></span></p>
+                <calcite-button id="placeUploadedModel" width="full" icon-start="pin-plus">Place Model</calcite-button>
+                <calcite-button id="importPlacement" width="full" icon-start="upload" appearance="outline" style="margin-top:4px">Import placement.json</calcite-button>
+                <input type="file" id="placementFileInput" accept=".json" hidden>
+              </div>
+              <div id="placedModelSnippet" hidden>
+                <p>Placement code:</p>
+                <pre id="placedModelCode"></pre>
+                <div class="mask-actions">
+                  <calcite-button id="copyModelBtn" width="full" icon-start="copy" appearance="outline">Copy</calcite-button>
+                  <calcite-button id="downloadModelBtn" width="full" icon-start="download" appearance="outline">Download JSON</calcite-button>
+                </div>
+              </div>
+            </calcite-block>
+          </calcite-tab>
+
+          <!-- ── Mask tab ──────────────────────────────────────────── -->
+          <calcite-tab>
+            <calcite-block
+              label="Filter mask"
+              description="Draw, apply, download or import a polygon mask:"
+              expanded>
+              <calcite-label>
+                <calcite-button id="drawMask" width="full" icon-start="pencil">Draw Mask</calcite-button>
+              </calcite-label>
+              <calcite-label>
+                <calcite-button id="clearMask" width="full" appearance="outline" disabled>Clear Mask</calcite-button>
+              </calcite-label>
+              <calcite-label>
+                <calcite-button id="applyMask" width="full" icon-start="filter" disabled>Apply Mask</calcite-button>
+              </calcite-label>
+              <div class="mask-actions">
+                <calcite-button id="downloadMask" width="full" icon-start="download" appearance="outline" disabled>Download</calcite-button>
+                <calcite-button id="importMask" width="full" icon-start="upload" appearance="outline">Import</calcite-button>
+              </div>
+              <input type="file" id="maskFileInput" accept=".json,.geojson" hidden>
+              <div id="snippetContainer" hidden>
+                <p>Polygon geometry snippet:</p>
+                <pre id="codeSnippet"></pre>
+                <calcite-button id="copyBtn" width="full" icon-start="copy" appearance="outline">Copy</calcite-button>
+              </div>
+            </calcite-block>
+          </calcite-tab>
+        </calcite-tabs>
+      </calcite-panel>
+    </arcgis-scene>
+    <script type="module">
+      const [GraphicsLayer, SketchViewModel, webMercatorUtils, Graphic] =
+        await $arcgis.import([
+          "@arcgis/core/layers/GraphicsLayer.js",
+          "@arcgis/core/widgets/Sketch/SketchViewModel.js",
+          "@arcgis/core/geometry/support/webMercatorUtils.js",
+          "@arcgis/core/Graphic.js",
+        ]);
+
+      /*****************************************************************
+       * Get a reference to the Scene component and add layers
+       *****************************************************************/
+      const viewElement = document.querySelector("arcgis-scene");
+
+      const graphicsLayer = new GraphicsLayer({
+        elevationInfo: { mode: "on-the-ground" },
+      });
+
+      await viewElement.viewOnReady();
+      viewElement.map.add(graphicsLayer);
+
+      // Collect SceneLayerViews from the basemap so we can apply
+      // FeatureFilter on the building layers when the mask is applied.
+      const sceneLayerViews = [];
+      for (const layer of viewElement.map.allLayers) {
+        if (layer.type === "scene") {
+          try {
+            const lv = await viewElement.view.whenLayerView(layer);
+            sceneLayerViews.push(lv);
+          } catch (_) {}
+        }
+      }
+
+      const tentButton = document.getElementById("tent");
+      const canoeButton = document.getElementById("canoe");
+
+      // This sample uses the SketchViewModel to add points to a
+      // GraphicsLayer. The points have 3D glTF models as symbols.
+      const sketchVM = new SketchViewModel({
+        layer: graphicsLayer,
+        view: viewElement.view,
+      });
+
+      function setupButtonClick(button, modelName) {
+        button.addEventListener("click", () => {
+          maskSketchVM.cancel();
+          // Reference the relative path to the glTF model
+          // in the resource of an ObjectSymbol3DLayer
+          sketchVM.pointSymbol = {
+            type: "point-3d",
+            symbolLayers: [
+              {
+                type: "object",
+                resource: {
+                  href: `https://developers.arcgis.com/javascript/latest/assets/sample-code/import-gltf/${modelName}.glb`,
+                },
+              },
+            ],
+          };
+          sketchVM.create("point");
+          makeModelButtonsSolid();
+          button.setAttribute("appearance", "outline");
+        });
+      }
+
+      // Set up event listeners for both buttons
+      setupButtonClick(tentButton, "tent");
+      setupButtonClick(canoeButton, "canoe");
+
+      // Track the graphic placed via the custom model upload workflow
+      let isPlacingCustomModel = false;
+      let customModelGraphic = null;
+
+      sketchVM.on("create", (event) => {
+        switch (event.state) {
+          case "complete": {
+            if (isPlacingCustomModel) {
+              customModelGraphic = event.graphic;
+              updateModelSnippet(customModelGraphic);
+              isPlacingCustomModel = false;
+            }
+            sketchVM.update(event.graphic);
+            makeModelButtonsSolid();
+            placeUploadedModelBtn?.setAttribute("appearance", "solid");
+            break;
+          }
+          case "cancel": {
+            isPlacingCustomModel = false;
+            makeModelButtonsSolid();
+            placeUploadedModelBtn?.setAttribute("appearance", "solid");
+            break;
+          }
+        }
+      });
+
+      sketchVM.on("update", (event) => {
+        if (
+          customModelGraphic &&
+          event.graphics.length > 0 &&
+          event.graphics[0] === customModelGraphic
+        ) {
+          updateModelSnippet(customModelGraphic);
+        }
+      });
+
+      function makeModelButtonsSolid() {
+        [tentButton, canoeButton].forEach((btn) =>
+          btn.setAttribute("appearance", "solid"),
+        );
+      }
+
+      /*****************************************************************
+       * Filter Mask: draw a polygon, apply it as a spatial filter on
+       * placed models, download as GeoJSON, or import a saved mask.
+       *****************************************************************/
+      const maskLayer = new GraphicsLayer({
+        elevationInfo: { mode: "on-the-ground" },
+      });
+      viewElement.map.add(maskLayer);
+
+      const maskPolygonSymbol = {
+        type: "polygon-3d",
+        symbolLayers: [
+          {
+            type: "fill",
+            material: { color: [211, 132, 80, 0.3] },
+            outline: { color: [211, 132, 80, 0.9], size: 2 },
+          },
+        ],
+      };
+
+      const maskSketchVM = new SketchViewModel({
+        layer: maskLayer,
+        view: viewElement.view,
+        polygonSymbol: maskPolygonSymbol,
+        updateOnGraphicClick: true,
+      });
+
+      const drawMaskBtn = document.getElementById("drawMask");
+      const clearMaskBtn = document.getElementById("clearMask");
+      const applyMaskBtn = document.getElementById("applyMask");
+      const downloadMaskBtn = document.getElementById("downloadMask");
+      const importMaskBtn = document.getElementById("importMask");
+      const maskFileInput = document.getElementById("maskFileInput");
+      const snippetContainer = document.getElementById("snippetContainer");
+      const codeSnippetEl = document.getElementById("codeSnippet");
+      const copyBtn = document.getElementById("copyBtn");
+
+      // currentMaskGeometry is always kept in the view's SR (WebMercator)
+      // so geometryEngine comparisons work against placed model graphics.
+      let currentMaskGeometry = null;
+      let maskApplied = false;
+
+      // ── Draw ──────────────────────────────────────────────────────────
+      drawMaskBtn.addEventListener("click", () => {
+        sketchVM.cancel();
+        if (maskApplied) resetApply();
+        maskLayer.removeAll();
+        snippetContainer.hidden = true;
+        clearMaskBtn.disabled = true;
+        applyMaskBtn.disabled = true;
+        downloadMaskBtn.disabled = true;
+        currentMaskGeometry = null;
+        maskSketchVM.create("polygon");
+        drawMaskBtn.setAttribute("appearance", "outline");
+      });
+
+      // ── Clear ─────────────────────────────────────────────────────────
+      clearMaskBtn.addEventListener("click", () => {
+        maskSketchVM.cancel();
+        if (maskApplied) resetApply();
+        maskLayer.removeAll();
+        snippetContainer.hidden = true;
+        clearMaskBtn.disabled = true;
+        applyMaskBtn.disabled = true;
+        downloadMaskBtn.disabled = true;
+        currentMaskGeometry = null;
+        drawMaskBtn.setAttribute("appearance", "solid");
+      });
+
+      // ── Apply / Remove ────────────────────────────────────────────────
+      applyMaskBtn.addEventListener("click", () => {
+        if (!currentMaskGeometry) return;
+        maskApplied = !maskApplied;
+        if (maskApplied) {
+          applySceneFilter(currentMaskGeometry);
+          applyMaskBtn.textContent = "Remove Mask";
+          applyMaskBtn.setAttribute("icon-start", "x-circle");
+          applyMaskBtn.setAttribute("kind", "danger");
+        } else {
+          resetApply();
+        }
+      });
+
+      function applySceneFilter(geometry) {
+        const featureFilter = { geometry, spatialRelationship: "disjoint" };
+        for (const lv of sceneLayerViews) {
+          lv.filter = featureFilter;
+        }
+      }
+
+      function resetApply() {
+        maskApplied = false;
+        for (const lv of sceneLayerViews) {
+          lv.filter = null;
+        }
+        applyMaskBtn.textContent = "Apply Mask";
+        applyMaskBtn.setAttribute("icon-start", "filter");
+        applyMaskBtn.removeAttribute("kind");
+      }
+
+      // ── Mask sketch events ────────────────────────────────────────────
+      maskSketchVM.on("create", (event) => {
+        if (event.state === "complete") {
+          currentMaskGeometry = event.graphic.geometry;
+          showSnippet(currentMaskGeometry);
+          maskSketchVM.update(event.graphic);
+          clearMaskBtn.disabled = false;
+          applyMaskBtn.disabled = false;
+          downloadMaskBtn.disabled = false;
+          drawMaskBtn.setAttribute("appearance", "solid");
+        }
+        if (event.state === "cancel") {
+          drawMaskBtn.setAttribute("appearance", "solid");
+        }
+      });
+
+      maskSketchVM.on("update", (event) => {
+        if (event.state !== "cancel" && event.graphics.length > 0) {
+          const geom = event.graphics[0].geometry;
+          // SketchViewModel preserves the original graphic's SR, so an imported
+          // WGS84 graphic comes back as WGS84 here. Always normalise to WebMercator
+          // so that showSnippet, applySceneFilter, and the download handler all
+          // receive a consistent geometry type.
+          currentMaskGeometry = geom.spatialReference.isWebMercator
+            ? geom
+            : webMercatorUtils.geographicToWebMercator(geom);
+          showSnippet(currentMaskGeometry);
+          // Re-apply the filter live as the polygon is reshaped
+          if (maskApplied) {
+            applySceneFilter(currentMaskGeometry);
+          }
+        }
+      });
+
+      // ── Download ──────────────────────────────────────────────────────
+      downloadMaskBtn.addEventListener("click", () => {
+        if (!currentMaskGeometry) return;
+        const geo = webMercatorUtils.webMercatorToGeographic(currentMaskGeometry);
+        const geojson = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: geo.rings.map((ring) =>
+              ring.map(([x, y]) => [
+                Math.round(x * 1e6) / 1e6,
+                Math.round(y * 1e6) / 1e6,
+              ]),
+            ),
+          },
+          properties: { name: "filter-mask" },
+        };
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], {
+          type: "application/geo+json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "filter-mask.geojson";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // ── Import ────────────────────────────────────────────────────────
+      importMaskBtn.addEventListener("click", () => maskFileInput.click());
+
+      maskFileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            let rings;
+            // Support GeoJSON Feature or raw ArcGIS polygon JSON
+            if (data.type === "Feature" && data.geometry?.type === "Polygon") {
+              rings = data.geometry.coordinates;
+            } else if (data.type === "polygon" && data.rings) {
+              rings = data.rings;
+            } else {
+              throw new Error(
+                "Unsupported format — expected a GeoJSON Feature or ArcGIS polygon JSON.",
+              );
+            }
+
+            if (maskApplied) resetApply();
+            maskLayer.removeAll();
+
+            const importedGraphic = new Graphic({
+              geometry: {
+                type: "polygon",
+                rings,
+                spatialReference: { wkid: 4326 },
+              },
+              symbol: maskPolygonSymbol,
+            });
+            // Convert to WebMercator BEFORE adding to the layer,
+            // so the original geometry object isn't mutated in-place by the API.
+            currentMaskGeometry = webMercatorUtils.geographicToWebMercator(
+              importedGraphic.geometry,
+            );
+            maskLayer.add(importedGraphic);
+
+            // Always pass the already-converted WebMercator geometry to showSnippet
+            // (same as the draw/update path) to avoid a double-conversion on the
+            // original WGS84 object if its SR was mutated above.
+            showSnippet(currentMaskGeometry);
+
+            clearMaskBtn.disabled = false;
+            applyMaskBtn.disabled = false;
+            downloadMaskBtn.disabled = false;
+
+            // Zoom to the imported mask
+            viewElement.view.goTo(currentMaskGeometry.extent.expand(2));
+          } catch (err) {
+            console.error("Failed to import mask:", err);
+            alert(`Import failed: ${err.message}`);
+          }
+        };
+        reader.readAsText(file);
+        maskFileInput.value = ""; // reset so the same file can be re-imported
+      });
+
+      // ── Snippet ───────────────────────────────────────────────────────
+      function showSnippet(polygon) {
+        let geo = polygon;
+        if (polygon.spatialReference.isWebMercator) {
+          geo = webMercatorUtils.webMercatorToGeographic(polygon);
+        }
+        const rings = geo.rings.map((ring) =>
+          ring.map(([x, y]) => [
+            Math.round(x * 1e6) / 1e6,
+            Math.round(y * 1e6) / 1e6,
+          ]),
+        );
+        codeSnippetEl.textContent =
+          `const filterPolygon = {\n` +
+          `  type: "polygon",\n` +
+          `  rings: ${JSON.stringify(rings, null, 4)},\n` +
+          `  spatialReference: { wkid: 4326 }\n` +
+          `};`;
+        snippetContainer.hidden = false;
+      }
+
+      copyBtn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(codeSnippetEl.textContent);
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = "Copy";
+        }, 2000);
+      });
+
+      /*****************************************************************
+       * Custom glTF Model Upload — place a local .glb, tune its size,
+       * and copy the resulting point + symbol code snippet.
+       *****************************************************************/
+      let uploadedModelURL = null;
+      let uploadedModelFileName = null;
+      let currentModelJSON = null;
+
+      const uploadModelBtn = document.getElementById("uploadModel");
+      const modelFileInput = document.getElementById("modelFileInput");
+      const uploadedModelControls = document.getElementById("uploadedModelControls");
+      const uploadedModelNameEl = document.getElementById("uploadedModelName");
+      const placeUploadedModelBtn = document.getElementById("placeUploadedModel");
+      const placedModelSnippetEl = document.getElementById("placedModelSnippet");
+      const placedModelCodeEl = document.getElementById("placedModelCode");
+      const copyModelBtn = document.getElementById("copyModelBtn");
+      const downloadModelBtn = document.getElementById("downloadModelBtn");
+      const importPlacementBtn = document.getElementById("importPlacement");
+      const placementFileInput = document.getElementById("placementFileInput");
+
+      uploadModelBtn.addEventListener("click", () => modelFileInput.click());
+
+      modelFileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        uploadedModelFileName = file.name;
+        if (uploadedModelURL) URL.revokeObjectURL(uploadedModelURL);
+        uploadedModelURL = URL.createObjectURL(file);
+        uploadedModelNameEl.textContent = file.name;
+        uploadedModelControls.hidden = false;
+        modelFileInput.value = "";
+      });
+
+      function getCustomModelSymbol() {
+        return {
+          type: "point-3d",
+          symbolLayers: [{ type: "object", resource: { href: uploadedModelURL } }],
+        };
+      }
+
+      placeUploadedModelBtn.addEventListener("click", () => {
+        if (!uploadedModelURL) return;
+        maskSketchVM.cancel();
+        customModelGraphic = null;
+        isPlacingCustomModel = true;
+        sketchVM.pointSymbol = getCustomModelSymbol();
+        sketchVM.create("point");
+        makeModelButtonsSolid();
+        placeUploadedModelBtn.setAttribute("appearance", "outline");
+      });
+
+      function updateModelSnippet(graphic) {
+        if (!graphic?.geometry) return;
+
+        let point = graphic.geometry;
+        if (point.spatialReference?.isWebMercator) {
+          point = webMercatorUtils.webMercatorToGeographic(point);
+        }
+
+        const lon = Math.round(point.longitude * 1e6) / 1e6;
+        const lat = Math.round(point.latitude * 1e6) / 1e6;
+        const z = Math.round((point.z || 0) * 10) / 10;
+
+        // Read scale and rotation set by SketchViewModel handles
+        const sl = graphic.symbol?.symbolLayers?.getItemAt(0);
+        const r = (v, d) => v != null ? Math.round(v * 100) / 100 : null;
+        const height  = r(sl?.height);
+        const width   = r(sl?.width);
+        const depth   = r(sl?.depth);
+        const heading = r(sl?.heading);
+        const tilt    = r(sl?.tilt);
+        const roll    = r(sl?.roll);
+
+        // Build the JSON that the download button will export
+        currentModelJSON = { resource_href: uploadedModelFileName ?? "model.glb" };
+        if (height  != null) currentModelJSON.height  = height;
+        if (width   != null) currentModelJSON.width   = width;
+        if (depth   != null) currentModelJSON.depth   = depth;
+        if (heading != null) currentModelJSON.heading = heading;
+        if (tilt    != null) currentModelJSON.tilt    = tilt;
+        if (roll    != null) currentModelJSON.roll    = roll;
+        currentModelJSON.longitude = lon;
+        currentModelJSON.latitude  = lat;
+        currentModelJSON.z         = z;
+
+        const scaleLines = [
+          height  != null ? `    height: ${height},`  : null,
+          width   != null ? `    width: ${width},`    : null,
+          depth   != null ? `    depth: ${depth},`    : null,
+        ].filter(Boolean).join("\n");
+
+        const rotationLines = [
+          heading != null ? `    heading: ${heading},` : null,
+          tilt    != null ? `    tilt: ${tilt},`       : null,
+          roll    != null ? `    roll: ${roll},`        : null,
+        ].filter(Boolean).join("\n");
+
+        placedModelCodeEl.textContent =
+          `const pointSymbol = {\n` +
+          `  type: "point-3d",\n` +
+          `  symbolLayers: [{\n` +
+          `    type: "object",\n` +
+          `    resource: { href: "YOUR_MODEL_URL.glb" },\n` +
+          (scaleLines    ? scaleLines    + "\n" : "") +
+          (rotationLines ? rotationLines + "\n" : "") +
+          `  }]\n` +
+          `};\n\n` +
+          `const point = {\n` +
+          `  type: "point",\n` +
+          `  longitude: ${lon},\n` +
+          `  latitude: ${lat},\n` +
+          `  z: ${z},\n` +
+          `  spatialReference: { wkid: 4326 }\n` +
+          `};`;
+
+        placedModelSnippetEl.hidden = false;
+      }
+
+      copyModelBtn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(placedModelCodeEl.textContent);
+        copyModelBtn.textContent = "Copied!";
+        setTimeout(() => {
+          copyModelBtn.textContent = "Copy";
+        }, 2000);
+      });
+
+      downloadModelBtn.addEventListener("click", () => {
+        if (!currentModelJSON) return;
+        const blob = new Blob([JSON.stringify(currentModelJSON, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "placement.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // ── Import placement.json ─────────────────────────────────────────
+      importPlacementBtn.addEventListener("click", () => placementFileInput.click());
+
+      placementFileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            const { longitude, latitude, z, height, width, depth, heading, tilt, roll } = data;
+            if (longitude == null || latitude == null) {
+              throw new Error("Missing longitude/latitude in placement JSON.");
+            }
+
+            // Build an updated point geometry (WGS84 → stored as-is; the API accepts 4326)
+            const newGeometry = {
+              type: "point",
+              longitude,
+              latitude,
+              z: z ?? 0,
+              spatialReference: { wkid: 4326 },
+            };
+
+            // Build an updated symbol, carrying over existing resource href if present
+            const existingHref = customModelGraphic?.symbol?.symbolLayers?.getItemAt(0)?.resource?.href
+              ?? uploadedModelURL;
+            const newSymbolLayer = { type: "object", resource: { href: existingHref } };
+            if (height  != null) newSymbolLayer.height  = height;
+            if (width   != null) newSymbolLayer.width   = width;
+            if (depth   != null) newSymbolLayer.depth   = depth;
+            if (heading != null) newSymbolLayer.heading = heading;
+            if (tilt    != null) newSymbolLayer.tilt    = tilt;
+            if (roll    != null) newSymbolLayer.roll    = roll;
+
+            if (customModelGraphic) {
+              // Update in place so SketchViewModel keeps tracking the graphic
+              sketchVM.cancel();
+              customModelGraphic.geometry = newGeometry;
+              customModelGraphic.symbol = { type: "point-3d", symbolLayers: [newSymbolLayer] };
+              sketchVM.update(customModelGraphic);
+            } else {
+              // No graphic placed yet — create one and add it to the layer
+              customModelGraphic = new Graphic({
+                geometry: newGeometry,
+                symbol: { type: "point-3d", symbolLayers: [newSymbolLayer] },
+              });
+              graphicsLayer.add(customModelGraphic);
+              sketchVM.update(customModelGraphic);
+            }
+
+            updateModelSnippet(customModelGraphic);
+            viewElement.view.goTo({ target: newGeometry, zoom: 18 });
+          } catch (err) {
+            console.error("Failed to import placement:", err);
+            alert(`Import failed: ${err.message}`);
+          }
+        };
+        reader.readAsText(file);
+        placementFileInput.value = "";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,181 @@
+<!--
+
+To run this demo, you need to replace 'YOUR_ACCESS_TOKEN' with an access token from ArcGIS that has the correct privileges.
+
+To get started, sign up for a free ArcGIS Location Platform account or an ArcGIS Online account and create developer credentials.
+
+https://developers.arcgis.com/documentation/security-and-authentication/get-started/
+
+-->
+
+
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>ArcGIS Maps SDK for JavaScript Tutorials: Scene camera snippet</title>
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #app {
+      position: relative;
+      height: 100%;
+      width: 100%;
+    }
+
+    arcgis-scene {
+      display: block;
+      height: 100%;
+      width: 100%;
+    }
+
+    .snippet-panel {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: min(480px, calc(100% - 24px));
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    #copyButton {
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #copyStatus {
+      margin-left: 8px;
+      font-size: 12px;
+    }
+
+    #snippetOutput {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      background: #f7f7f7;
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 45vh;
+      overflow: auto;
+    }
+  </style>
+
+  
+
+  <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+  <script type="module" src="https://js.arcgis.com/5.0/"></script>
+</head>
+
+
+<body>
+  <div id="app">
+    <arcgis-scene id="scene" basemap="hybrid" ground="world-elevation" zoom="21"
+      camera-position="-122.08479432121761, 37.421250143875014, 62.67" camera-tilt="66.36" camera-heading="43.991175">
+      <arcgis-search slot="top-left"></arcgis-search>
+      <arcgis-zoom slot="top-left"></arcgis-zoom>
+      <arcgis-navigation-toggle slot="top-left"></arcgis-navigation-toggle>
+    </arcgis-scene>
+
+    <section class="snippet-panel" aria-live="polite">
+      <div class="panel-header">
+        <h2 class="panel-title">Live Scene Snippet</h2>
+        <div>
+          <button id="copyButton" type="button">Copy</button>
+          <span id="copyStatus"></span>
+        </div>
+      </div>
+      <pre id="snippetOutput"></pre>
+    </section>
+  </div>
+
+  <script type="module">
+    const sceneEl = document.getElementById("scene");
+    const snippetOutput = document.getElementById("snippetOutput");
+    const copyButton = document.getElementById("copyButton");
+    const copyStatus = document.getElementById("copyStatus");
+
+    const formatNumber = (value, digits) => Number(value).toFixed(digits);
+
+    const buildSnippet = (view) => {
+      const camera = view.camera;
+      const position = camera.position;
+      const basemap = sceneEl.getAttribute("basemap") || "arcgis/imagery";
+      const ground = sceneEl.getAttribute("ground") || "world-elevation";
+      const zoom = formatNumber(view.zoom, 2);
+      const longitude = formatNumber(position.longitude, 12);
+      const latitude = formatNumber(position.latitude, 12);
+      const z = formatNumber(position.z, 2);
+      const tilt = formatNumber(camera.tilt, 2);
+      const heading = formatNumber(camera.heading, 6);
+
+      return `<arcgis-scene\n  basemap="${basemap}"\n  ground="${ground}"\n  zoom="${zoom}"\n  camera-position="${longitude}, ${latitude}, ${z}"\n  camera-tilt="${tilt}"\n  camera-heading="${heading}">\n  <arcgis-search slot="top-left"></arcgis-search>\n</arcgis-scene>`;
+    };
+
+    const updateSnippet = () => {
+      const view = sceneEl.view;
+      if (!view || !view.camera) {
+        return;
+      }
+      snippetOutput.textContent = buildSnippet(view);
+    };
+
+    sceneEl.addEventListener("arcgisViewReadyChange", () => {
+      const view = sceneEl.view;
+      if (!view) {
+        return;
+      }
+
+      updateSnippet();
+      view.watch("camera", updateSnippet);
+      view.watch("zoom", updateSnippet);
+      view.watch("stationary", updateSnippet);
+    });
+
+    sceneEl.addEventListener("arcgisViewChange", updateSnippet);
+
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(snippetOutput.textContent);
+        copyStatus.textContent = "Copied";
+      } catch (error) {
+        copyStatus.textContent = "Copy failed";
+      }
+
+      setTimeout(() => {
+        copyStatus.textContent = "";
+      }, 1500);
+    });
+  </script>
+</body>
+
+
+</html>
