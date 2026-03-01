@@ -93,6 +93,7 @@
         overflow-y: auto;
         margin: 4px 0 8px;
       }
+
     </style>
   </head>
 
@@ -160,7 +161,7 @@
             </calcite-block>
           </calcite-tab>
 
-          <!-- ── Mask tab ──────────────────────────────────────────── -->
+          <!-- ── Mask tab ─────────────────────────────────────────── -->
           <calcite-tab>
             <calcite-block
               label="Filter mask"
@@ -187,8 +188,12 @@
               </div>
             </calcite-block>
           </calcite-tab>
+
         </calcite-tabs>
       </calcite-panel>
+        <arcgis-expand slot="top-left">
+          <arcgis-basemap-gallery></arcgis-basemap-gallery>
+        </arcgis-expand>
     </arcgis-scene>
     <script type="module">
       const [GraphicsLayer, SketchViewModel, webMercatorUtils, Graphic] =
@@ -222,6 +227,26 @@
           } catch (_) {}
         }
       }
+
+      // Keep sceneLayerViews in sync when the user switches basemaps.
+      // When a new scene layer is added (e.g. returning to topo-3d), its
+      // layer view is collected and any active mask filter is re-applied.
+      viewElement.map.allLayers.on("change", async ({ added, removed }) => {
+        for (const layer of removed) {
+          const idx = sceneLayerViews.findIndex((lv) => lv.layer === layer);
+          if (idx !== -1) sceneLayerViews.splice(idx, 1);
+        }
+        for (const layer of added) {
+          if (layer.type !== "scene") continue;
+          try {
+            const lv = await viewElement.view.whenLayerView(layer);
+            sceneLayerViews.push(lv);
+            if (maskApplied && currentMaskGeometry) {
+              lv.filter = { geometry: currentMaskGeometry, spatialRelationship: "disjoint" };
+            }
+          } catch (_) {}
+        }
+      });
 
       const tentButton = document.getElementById("tent");
       const canoeButton = document.getElementById("canoe");
@@ -384,7 +409,20 @@
         }
       });
 
-      function applySceneFilter(geometry) {
+      async function applySceneFilter(geometry) {
+        // Always re-collect scene layer views before applying so that a
+        // basemap switch between drawing and clicking "Apply Mask" never
+        // leaves the array stale (the allLayers change handler populates it
+        // asynchronously via whenLayerView, which may not have resolved yet).
+        sceneLayerViews.length = 0;
+        for (const layer of viewElement.map.allLayers) {
+          if (layer.type === "scene") {
+            try {
+              const lv = await viewElement.view.whenLayerView(layer);
+              sceneLayerViews.push(lv);
+            } catch (_) {}
+          }
+        }
         const featureFilter = { geometry, spatialRelationship: "disjoint" };
         for (const lv of sceneLayerViews) {
           lv.filter = featureFilter;
