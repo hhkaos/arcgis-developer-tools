@@ -3,9 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>ArcGIS Vector Style Editor</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="app.css" />
+  <script>
+    // Prevent stale local CSS/JS from being mixed with newer HTML during local development.
+    window.__appAssetVersion = Date.now().toString();
+
+    const appStylesheet = document.createElement('link');
+    appStylesheet.rel = 'stylesheet';
+    appStylesheet.href = `app.css?v=${window.__appAssetVersion}`;
+    document.head.appendChild(appStylesheet);
+  </script>
 </head>
 <body>
 
@@ -230,6 +241,10 @@
 
 <script src="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="app.js"></script>
+<script>
+  const appScript = document.createElement('script');
+  appScript.src = `app.js?v=${window.__appAssetVersion}`;
+  document.body.appendChild(appScript);
+</script>
 </body>
 </html>

@@ -9,6 +9,8 @@
 const STYLE_URL = (id) =>
   `https://www.arcgis.com/sharing/rest/content/items/${id}/resources/styles/root.json?f=pjson`;
 
+const JSON_PREVIEW_MAX_LAYERS = 400;
+
 /** Layer types available for each source type */
 const LAYER_TYPES = {
   vector:      ['fill', 'line', 'symbol', 'circle', 'fill-extrusion', 'heatmap'],
@@ -53,6 +55,10 @@ const state = {
   modalImport:  null,
   map:          null,
   sortable:     null,
+  layerElements:new Map(),
+  layersDirty:  true,
+  emptyLayerRow:null,
+  jsonFrame:    0,
 };
 
 // ═══ DOM helpers ══════════════════════════════════════════════════════════════
@@ -107,6 +113,10 @@ function sanitizeId(value, fallback = 'custom-source') {
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return clean || fallback;
+}
+
+function markLayersDirty() {
+  state.layersDirty = true;
 }
 
 function appendQuery(url, key, value) {
@@ -286,6 +296,7 @@ function removeSource(id) {
     }
     return true;
   });
+  markLayersDirty();
   renderSources();
   renderLayers();
   updateJson();
@@ -293,26 +304,11 @@ function removeSource(id) {
 
 // ═══ Render: Layers ═══════════════════════════════════════════════════════════
 
-function renderLayers(filter = '') {
-  const list = $('layersList');
-  const q = filter.trim().toLowerCase();
-
-  // Destroy old Sortable before rebuilding DOM
-  if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
-
-  list.innerHTML = '';
-  $('layerCount').textContent = state.layers.length;
-
-  for (const layer of state.layers) {
-    if (q && !layer.id.toLowerCase().includes(q)) continue;
-
-    const isAdded = state.addedLayerIds.has(layer.id);
-    const color = TYPE_COLOR[layer.type] || '#94a3b8';
-
-    const item = document.createElement('div');
-    item.className = `layer-item${isAdded ? ' layer-added' : ''}`;
-    item.dataset.id = layer.id;
-    item.innerHTML = `
+function createLayerMarkup(layer) {
+  const isAdded = state.addedLayerIds.has(layer.id);
+  const color = TYPE_COLOR[layer.type] || '#94a3b8';
+  return `
+    <div class="layer-item${isAdded ? ' layer-added' : ''}" data-id="${esc(layer.id)}">
       <div class="drag-handle" title="Drag to reorder">
         <svg viewBox="0 0 10 16" fill="currentColor" width="9" height="14">
           <circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/>
@@ -329,15 +325,33 @@ function renderLayers(filter = '') {
         </span>
       </div>
       ${isAdded ? `<button class="icon-btn remove-layer-btn" data-id="${esc(layer.id)}" title="Remove layer">×</button>` : ''}
-    `;
-    list.appendChild(item);
+    </div>
+  `;
+}
+
+function rebuildLayersList() {
+  const list = $('layersList');
+
+  if (state.sortable) {
+    state.sortable.destroy();
+    state.sortable = null;
   }
 
-  if (!list.children.length) {
-    list.innerHTML = `<div class="empty-list">${q ? 'No layers match filter' : 'No layers'}</div>`;
+  list.innerHTML = '';
+  state.layerElements = new Map();
+  state.emptyLayerRow = null;
+
+  if (!state.layers.length) {
+    state.layersDirty = false;
+    return;
   }
 
-  // Re-init Sortable
+  list.innerHTML = state.layers.map(createLayerMarkup).join('');
+
+  for (const item of list.querySelectorAll('.layer-item[data-id]')) {
+    state.layerElements.set(item.dataset.id, item);
+  }
+
   state.sortable = Sortable.create(list, {
     animation: 150,
     handle: '.drag-handle',
@@ -346,26 +360,70 @@ function renderLayers(filter = '') {
     onEnd: syncLayerOrder,
   });
 
-  list.querySelectorAll('.remove-layer-btn').forEach((btn) =>
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      state.layers = state.layers.filter((l) => l.id !== id);
-      state.addedLayerIds.delete(id);
-      renderLayers($('layerSearch').value);
-      updateJson();
-    })
-  );
+  state.layersDirty = false;
+}
+
+function setLayerEmptyState(message) {
+  const list = $('layersList');
+
+  if (!state.emptyLayerRow) {
+    state.emptyLayerRow = document.createElement('div');
+    state.emptyLayerRow.className = 'empty-list';
+  }
+
+  state.emptyLayerRow.textContent = message;
+
+  if (!state.emptyLayerRow.isConnected) {
+    list.appendChild(state.emptyLayerRow);
+  }
+}
+
+function clearLayerEmptyState() {
+  if (state.emptyLayerRow?.isConnected) {
+    state.emptyLayerRow.remove();
+  }
+}
+
+function renderLayers(filter = '') {
+  const list = $('layersList');
+  const q = filter.trim().toLowerCase();
+  $('layerCount').textContent = state.layers.length;
+
+  if (state.layersDirty || state.layerElements.size !== state.layers.length) {
+    rebuildLayersList();
+  }
+
+  let visibleCount = 0;
+  for (const layer of state.layers) {
+    const item = state.layerElements.get(layer.id);
+    if (!item) continue;
+
+    const matches = !q || layer.id.toLowerCase().includes(q);
+    item.classList.toggle('hidden', !matches);
+    if (matches) visibleCount++;
+  }
+
+  if (!visibleCount) {
+    setLayerEmptyState(q ? 'No layers match filter' : 'No layers');
+  } else {
+    clearLayerEmptyState();
+  }
+
+  if (state.sortable) {
+    state.sortable.option('disabled', !!q || !visibleCount);
+  }
 }
 
 function syncLayerOrder() {
   const items = $('layersList').querySelectorAll('.layer-item[data-id]');
   const orderedIds = Array.from(items).map((el) => el.dataset.id);
+  const orderedIdSet = new Set(orderedIds);
   const map = new Map(state.layers.map((l) => [l.id, l]));
 
   const reordered = [];
   for (const id of orderedIds) if (map.has(id)) reordered.push(map.get(id));
   // Preserve hidden (filtered-out) layers at their relative positions
-  for (const l of state.layers) if (!orderedIds.includes(l.id)) reordered.push(l);
+  for (const l of state.layers) if (!orderedIdSet.has(l.id)) reordered.push(l);
 
   state.layers = reordered;
   updateJson();
@@ -376,7 +434,33 @@ function syncLayerOrder() {
 function updateJson() {
   const modified = buildModified();
   if (!modified) return;
-  $('jsonOutput').innerHTML = highlightJson(JSON.stringify(modified, null, 2));
+  const output = $('jsonOutput');
+
+  if (state.jsonFrame) cancelAnimationFrame(state.jsonFrame);
+
+  if ((modified.layers?.length || 0) > JSON_PREVIEW_MAX_LAYERS) {
+    output.textContent = [
+      'JSON preview disabled for large styles to keep the page responsive.',
+      `Layers: ${modified.layers.length}`,
+      `Sources: ${Object.keys(modified.sources || {}).length}`,
+      'Use Copy or Download to export the full style JSON.',
+    ].join('\n');
+    state.jsonFrame = 0;
+    return;
+  }
+
+  const jsonText = JSON.stringify(modified, null, 2);
+  const useHighlight = jsonText.length <= 120000;
+
+  // Large styles can stall the main thread; defer and skip syntax highlighting past a threshold.
+  state.jsonFrame = requestAnimationFrame(() => {
+    if (useHighlight) {
+      output.innerHTML = highlightJson(jsonText);
+    } else {
+      output.textContent = jsonText;
+    }
+    state.jsonFrame = 0;
+  });
 }
 
 // ═══ Source Type Form Templates ═══════════════════════════════════════════════
@@ -1155,6 +1239,7 @@ function importDiscoveredStyleLayers(sourceId) {
     state.addedLayerIds.add(cloned.id);
     imported++;
   }
+  if (imported) markLayersDirty();
   return imported;
 }
 
@@ -1255,6 +1340,7 @@ function saveSource() {
         state.layers.splice(idx !== -1 ? idx : state.layers.length, 0, layer);
       }
       state.addedLayerIds.add(layer.id);
+      markLayersDirty();
     }
   }
 
@@ -1501,6 +1587,9 @@ async function loadStyle() {
   state.layers = [];
   state.addedSources = {};
   state.addedLayerIds = new Set();
+  state.layerElements = new Map();
+  state.emptyLayerRow = null;
+  state.layersDirty = true;
   if (state.map) { state.map.remove(); state.map = null; }
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
 
@@ -1514,6 +1603,7 @@ async function loadStyle() {
     const style = await fetchStyle(itemId);
     state.original = style;
     state.layers   = [...style.layers];
+    markLayersDirty();
 
     hide($('loadingState'));
     show($('mainLayout'));
@@ -1580,6 +1670,17 @@ function init() {
 
   // Layer filter
   $('layerSearch').addEventListener('input', (e) => renderLayers(e.target.value));
+  $('layersList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.remove-layer-btn');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    state.layers = state.layers.filter((l) => l.id !== id);
+    state.addedLayerIds.delete(id);
+    markLayersDirty();
+    renderLayers($('layerSearch').value);
+    updateJson();
+  });
 
   // Map preview
   $('previewBtn').addEventListener('click', previewMap);
@@ -1589,4 +1690,8 @@ function init() {
   $('downloadBtn').addEventListener('click', downloadJson);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
