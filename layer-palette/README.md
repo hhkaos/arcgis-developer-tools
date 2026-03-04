@@ -22,7 +22,7 @@ This project is a static frontend built for GitHub Pages and lives inside the `a
 ## Project structure
 
 ```text
-custom-basemaps-assets/
+layer-palette/
 ├── index.html
 ├── src/
 │   ├── api.js
@@ -67,7 +67,7 @@ The production output is generated in `dist/`.
 
 ## Configuration and data
 
-The source of truth for the asset catalog is [src/config/assets.json](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/config/assets.json).
+The source of truth for the asset catalog is [src/config/assets.json](/Users/ral97612/workspace/arcgis-developer-tools/layer-palette/src/config/assets.json).
 
 ### Adding a standard ArcGIS item
 
@@ -116,10 +116,10 @@ Add a category definition in the `categories` array, then reference that categor
 
 ## How it works
 
-- [src/main.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/main.js) handles state, rendering, search, filtering, modal behavior, and preview behavior
-- [src/api.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/api.js) builds ArcGIS URLs and fetches item metadata
-- [src/cache.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/cache.js) manages the `localStorage` cache and cache invalidation
-- [index.html](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/index.html) contains the static app shell
+- [src/main.js](/Users/ral97612/workspace/arcgis-developer-tools/layer-palette/src/main.js) handles state, rendering, search, filtering, modal behavior, and preview behavior
+- [src/api.js](/Users/ral97612/workspace/arcgis-developer-tools/layer-palette/src/api.js) builds ArcGIS URLs and fetches item metadata
+- [src/cache.js](/Users/ral97612/workspace/arcgis-developer-tools/layer-palette/src/cache.js) manages the `localStorage` cache and cache invalidation
+- [index.html](/Users/ral97612/workspace/arcgis-developer-tools/layer-palette/index.html) contains the static app shell
 
 ## Contributing
 

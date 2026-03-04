@@ -20,7 +20,7 @@ Dev: `npm run dev`
 ## File structure
 
 ```
-custom-basemaps-assets/
+layer-palette/
 ├── index.html               # App shell, all static HTML including modal
 ├── src/
 │   ├── main.js              # All UI logic, state, rendering, event wiring
@@ -199,4 +199,4 @@ These are stripped from the Type Keywords display in the detail modal (too gener
 
 ## GitHub Pages deployment
 
-The monorepo `.gitignore` excludes `custom-basemaps-assets/dist/` and `custom-basemaps-assets/node_modules/`. The GitHub Actions workflow in the repo root handles building and deploying. `vite.config.js` uses `base: "./"` for relative asset paths.
+The monorepo `.gitignore` excludes `layer-palette/dist/` and `layer-palette/node_modules/`. The GitHub Actions workflow in the repo root handles building and deploying. `vite.config.js` uses `base: "./"` for relative asset paths.
