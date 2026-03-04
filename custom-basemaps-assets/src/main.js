@@ -13,6 +13,9 @@ const state = {
   loading: new Set(), // itemIds currently being fetched
 };
 
+const ISSUE_URL = "https://github.com/hhkaos/arcgis-developer-tools/issues";
+const CONTACT_URL = "https://links.rauljimenez.info/";
+
 // ─── Derived: items visible given current category + search ──────────────────
 
 // Items matching category + search, before type-chip filter
@@ -327,6 +330,40 @@ function renderCard(item) {
   return card;
 }
 
+function renderMissingResourceCard({ compact = false } = {}) {
+  const card = document.createElement("div");
+  card.className = compact
+    ? "bg-gradient-to-br from-slate-50 to-blue-50 border border-dashed border-blue-200 rounded-xl p-4 flex flex-col justify-between min-h-[12rem]"
+    : "w-full max-w-xl bg-white border border-dashed border-blue-200 rounded-2xl p-5 text-left shadow-sm";
+
+  const titleClass = compact ? "text-sm font-semibold text-gray-900" : "text-base font-semibold text-gray-900";
+  const bodyClass = compact ? "text-xs text-gray-600 leading-relaxed mt-2" : "text-sm text-gray-600 leading-relaxed mt-2";
+  const actionClass = compact
+    ? "inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+    : "inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-colors";
+
+  card.innerHTML = `
+    <div>
+      <p class="${titleClass}">Missing resource?</p>
+      <p class="${bodyClass}">
+        Tell me what you are looking for so I can add it. Open a GitHub issue or use my links page to get in touch.
+      </p>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a href="${ISSUE_URL}" target="_blank" rel="noopener"
+        class="${actionClass} bg-blue-600 text-white hover:bg-blue-700">
+        Open an issue
+      </a>
+      <a href="${CONTACT_URL}" target="_blank" rel="noopener"
+        class="${actionClass} border border-gray-300 text-gray-700 hover:bg-gray-50">
+        Contact Raul
+      </a>
+    </div>
+  `;
+
+  return card;
+}
+
 // ─── Type filter chips ────────────────────────────────────────────────────────
 
 function renderTypeChips() {
@@ -383,6 +420,7 @@ function renderGrid() {
     empty.classList.add("hidden");
     empty.classList.remove("flex");
     visible.forEach((item) => grid.appendChild(renderCard(item)));
+    grid.appendChild(renderMissingResourceCard({ compact: true }));
     return;
   }
 
@@ -416,6 +454,7 @@ function renderGrid() {
         </button>
       </div>
     `;
+    empty.appendChild(renderMissingResourceCard());
     document.getElementById("show-all-results").addEventListener("click", () => {
       state.selectedCategory = "all";
       renderSidebar();
@@ -431,8 +470,9 @@ function renderGrid() {
       <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      <p class="text-sm text-gray-400">No assets found</p>
+      <p class="text-sm font-medium text-gray-600">No assets found</p>
     `;
+    empty.appendChild(renderMissingResourceCard());
   }
 }
 
@@ -597,6 +637,24 @@ function closePreview() {
   document.getElementById("preview-iframe").src = "";
 }
 
+function closeFeedbackPanel() {
+  const panel = document.getElementById("feedback-panel");
+  const trigger = document.getElementById("feedback-trigger");
+  if (!panel || !trigger) return;
+  panel.classList.add("hidden");
+  trigger.setAttribute("aria-expanded", "false");
+}
+
+function toggleFeedbackPanel() {
+  const panel = document.getElementById("feedback-panel");
+  const trigger = document.getElementById("feedback-trigger");
+  if (!panel || !trigger) return;
+
+  const isHidden = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !isHidden);
+  trigger.setAttribute("aria-expanded", String(isHidden));
+}
+
 // ─── Refresh ──────────────────────────────────────────────────────────────────
 
 async function refreshItem(itemId) {
@@ -686,11 +744,28 @@ async function init() {
   document.getElementById("detail-close").addEventListener("click", closeDetailModal);
   document.getElementById("detail-backdrop").addEventListener("click", closeDetailModal);
 
+  // Feedback menu
+  document.getElementById("feedback-trigger").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleFeedbackPanel();
+  });
+
+  document.getElementById("feedback-panel").addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeFeedbackPanel();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#feedback-menu")) closeFeedbackPanel();
+  });
+
   // Escape closes modal or preview
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       if (!document.getElementById("detail-modal").classList.contains("hidden")) {
         closeDetailModal();
+      } else if (!document.getElementById("feedback-panel").classList.contains("hidden")) {
+        closeFeedbackPanel();
       } else {
         closePreview();
       }
