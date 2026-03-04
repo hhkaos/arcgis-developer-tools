@@ -9,3 +9,5 @@ blend-modes-explorer/dist/
 # Keep project tracked; ignore build/dependency artifacts only
 basemap-effects-code-explorer/dist/
 basemap-effects-code-explorer/node_modules/
+custom-basemaps-assets/dist/
+custom-basemaps-assets/node_modules/
