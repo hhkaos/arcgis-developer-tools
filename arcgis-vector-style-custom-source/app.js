@@ -115,6 +115,10 @@ function resetModalImportState() {
     sourceLayers: [],
     styleSourceId: null,
     styleLayers: [],
+    selectedStyleLayerIds: new Set(),
+    styleLayerSearch: '',
+    styleLayerPickerOpen: false,
+    importStyledLayersEnabled: false,
     styleOrigin: null,
   };
 }
@@ -335,6 +339,81 @@ function collectSourceLayerNames(serviceMeta, style, styleSourceId) {
   }
 
   return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function getSelectedDiscoveredStyleLayers() {
+  const allLayers = state.modalImport?.styleLayers || [];
+  const selectedIds = state.modalImport?.selectedStyleLayerIds || new Set();
+  return allLayers.filter((layer) => selectedIds.has(layer.id));
+}
+
+function summarizeDiscoveredStyleLayerSelection() {
+  const total = state.modalImport?.styleLayers?.length || 0;
+  const selected = getSelectedDiscoveredStyleLayers().length;
+
+  if (!total) return 'No styled layers available';
+  if (selected === total) return `All ${total} styled layers selected`;
+  if (!selected) return `No styled layers selected`;
+  return `${selected} of ${total} styled layers selected`;
+}
+
+function bindArcgisDiscoveryControls(canImport) {
+  const picker = document.querySelector('.style-layer-picker');
+  const importToggle = $('importStyledLayers');
+  const searchInput = $('styleLayerSearch');
+  const includeAll = $('includeAllStyledLayers');
+
+  picker?.addEventListener('toggle', () => {
+    state.modalImport.styleLayerPickerOpen = picker.open;
+  });
+
+  searchInput?.addEventListener('input', (event) => {
+    state.modalImport.styleLayerSearch = event.target.value;
+    renderArcgisDiscovery();
+  });
+
+  if (state.modalImport.styleLayerPickerOpen && searchInput) {
+    searchInput.focus();
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+  }
+
+  includeAll?.addEventListener('change', (event) => {
+    if (event.target.checked) {
+      state.modalImport.selectedStyleLayerIds = new Set(
+        (state.modalImport?.styleLayers || []).map((layer) => layer.id)
+      );
+    } else {
+      state.modalImport.selectedStyleLayerIds = new Set();
+    }
+    renderArcgisDiscovery();
+  });
+
+  if (!canImport) return;
+
+  for (const checkbox of document.querySelectorAll('.style-layer-option input[type="checkbox"][data-layer-id]')) {
+    checkbox.addEventListener('change', (event) => {
+      const layerId = event.target.dataset.layerId;
+      if (!layerId) return;
+
+      if (event.target.checked) {
+        state.modalImport.selectedStyleLayerIds.add(layerId);
+      } else {
+        state.modalImport.selectedStyleLayerIds.delete(layerId);
+      }
+
+      renderArcgisDiscovery();
+    });
+  }
+
+  importToggle?.addEventListener('change', () => {
+    state.modalImport.importStyledLayersEnabled = importToggle.checked;
+    if (importToggle.checked && !getSelectedDiscoveredStyleLayers().length) {
+      state.modalImport.selectedStyleLayerIds = new Set(
+        (state.modalImport?.styleLayers || []).map((layer) => layer.id)
+      );
+      renderArcgisDiscovery();
+    }
+  });
 }
 
 async function fetchJson(url) {
@@ -906,9 +985,52 @@ function getSrcFields(type) {
 
     case 'vector':
       return `
-        ${tileUrlInput()}
+        <div class="form-group">
+          <label>Input Method</label>
+          <div class="radio-toggle" id="urlMethodToggle">
+            <button type="button" class="radio-btn active" data-val="arcgis">ArcGIS source import</button>
+            <button type="button" class="radio-btn" data-val="url">TileJSON URL</button>
+            <button type="button" class="radio-btn" data-val="tiles">Tile URLs</button>
+          </div>
+        </div>
+        <div class="arcgis-assist" id="arcgisImportGroup">
+          <div class="arcgis-assist-header">
+            <div>
+              <div class="arcgis-assist-title">ArcGIS source import</div>
+              <div class="field-hint" style="margin-top:2px">Inspect a VectorTileServer, style item ID, or style URL to discover source layers and reuse the source style.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="arcgisSrcUrl">VectorTileServer URL <span class="req">*</span></label>
+            <input type="text" id="arcgisSrcUrl" class="form-input" placeholder="https://…/VectorTileServer" />
+            <div class="field-hint">Use the full ArcGIS VectorTileServer endpoint.</div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="arcgisStyleItemId">Style Item ID (optional)</label>
+              <input type="text" id="arcgisStyleItemId" class="form-input" placeholder="ArcGIS item ID for root.json" />
+            </div>
+            <div class="form-group">
+              <label for="arcgisStyleUrl">Style URL (optional)</label>
+              <input type="text" id="arcgisStyleUrl" class="form-input" placeholder="…/resources/styles/root.json?f=pjson" />
+            </div>
+          </div>
+          <div class="form-group">
+            <button type="button" class="btn btn-sm btn-outline" id="arcgisDetectBtn">Inspect</button>
+          </div>
+          <div id="arcgisDiscovery" class="arcgis-discovery hidden"></div>
+        </div>
+        <div class="form-group hidden" id="srcUrlGroup">
+          <label for="srcUrl">TileJSON / Service URL <span class="req">*</span></label>
+          <input type="text" id="srcUrl" class="form-input" placeholder="https://…" />
+        </div>
+        <div class="form-group hidden" id="srcTilesGroup">
+          <label for="srcTiles">Tile URLs <span class="req">*</span></label>
+          <textarea id="srcTiles" class="form-input" rows="3" placeholder="https://{z}/{x}/{y}.pbf"></textarea>
+          <div class="field-hint">One URL per line. Use {z}, {x}, {y} placeholders.</div>
+        </div>
         <div class="field-hint" style="margin:0 0 10px">
-          For ArcGIS VectorTileServer URLs, use the full service endpoint (e.g. <code>…/VectorTileServer</code>).
+          For ArcGIS imports, use the full service endpoint (e.g. <code>…/VectorTileServer</code>).
         </div>
         ${zoomSchemeFields()}
       `;
@@ -1052,30 +1174,7 @@ function getSrcFields(type) {
 }
 
 function getSrcPreFields(type) {
-  if (type !== 'vector') return '';
-
-  return `
-    <div class="arcgis-assist" id="arcgisAssistSection">
-      <div class="arcgis-assist-header">
-        <div>
-          <div class="arcgis-assist-title">ArcGIS source import</div>
-          <div class="field-hint" style="margin-top:2px">Inspect a VectorTileServer, style item ID, or style URL to discover source layers and reuse the source style.</div>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline" id="arcgisDetectBtn">Inspect</button>
-      </div>
-      <div class="form-row-2">
-        <div class="form-group">
-          <label for="arcgisStyleItemId">Style Item ID (optional)</label>
-          <input type="text" id="arcgisStyleItemId" class="form-input" placeholder="ArcGIS item ID for root.json" />
-        </div>
-        <div class="form-group">
-          <label for="arcgisStyleUrl">Style URL (optional)</label>
-          <input type="text" id="arcgisStyleUrl" class="form-input" placeholder="…/resources/styles/root.json?f=pjson" />
-        </div>
-      </div>
-      <div id="arcgisDiscovery" class="arcgis-discovery hidden"></div>
-    </div>
-  `;
+  return '';
 }
 
 // ═══ Layer Form Templates ═════════════════════════════════════════════════════
@@ -1292,11 +1391,12 @@ function collectSource() {
 
   // Determine active URL method
   const activeBtn = $('urlMethodToggle')?.querySelector('.radio-btn.active');
-  const method = activeBtn?.dataset?.val || 'url';
+  const method = activeBtn?.dataset?.val || (type === 'vector' ? 'arcgis' : 'url');
 
   switch (type) {
     case 'vector': {
-      if (method === 'url') { const u = v('srcUrl'); if (u) config.url = u; }
+      if (method === 'arcgis') { const u = v('arcgisSrcUrl'); if (u) config.url = u; }
+      else if (method === 'url') { const u = v('srcUrl'); if (u) config.url = u; }
       else { const t = v('srcTiles'); if (t) config.tiles = t.split('\n').map((s) => s.trim()).filter(Boolean); }
       const min = n('srcMinzoom', null); if (min !== null) config.minzoom = min;
       const max = n('srcMaxzoom', null); if (max !== null) config.maxzoom = max;
@@ -1384,56 +1484,115 @@ function renderArcgisDiscovery() {
     ? info.sourceLayers.map((name) => `<span class="mini-chip">${esc(name)}</span>`).join('')
     : '<span class="field-hint">No source-layer names were discovered.</span>';
 
-  const styleLayers = info.styleLayers.length
-    ? info.styleLayers.map((layer) => `<span class="mini-chip">${esc(layer.id)}</span>`).join('')
-    : '<span class="field-hint">No importable style layers were found.</span>';
-
   const canImport = info.status === 'ready' && info.styleLayers.length > 0;
+  const selectedCount = getSelectedDiscoveredStyleLayers().length;
+  const totalStyleLayers = info.styleLayers.length;
+  const styleLayerSearch = info.styleLayerSearch?.trim().toLowerCase() || '';
+  const visibleStyleLayers = info.styleLayers.filter((layer) => (
+    !styleLayerSearch
+    || layer.id.toLowerCase().includes(styleLayerSearch)
+    || (layer['source-layer'] || '').toLowerCase().includes(styleLayerSearch)
+  ));
+  const allSelected = !!totalStyleLayers && selectedCount === totalStyleLayers;
+
+  const styleLayerPicker = info.styleLayers.length
+    ? `
+      <details class="style-layer-picker" ${info.styleLayerPickerOpen ? 'open' : ''}>
+        <summary class="style-layer-picker-summary">${esc(summarizeDiscoveredStyleLayerSelection())}</summary>
+        <div class="style-layer-picker-panel">
+          <div class="search-wrap modal-search-wrap">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="search-icon">
+              <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
+            <input
+              type="text"
+              id="styleLayerSearch"
+              class="search-input"
+              placeholder="Search styled layers…"
+              value="${esc(info.styleLayerSearch || '')}"
+            />
+          </div>
+          <label class="style-layer-option style-layer-option-all">
+            <input type="checkbox" id="includeAllStyledLayers" ${allSelected ? 'checked' : ''} />
+            <span>Include all styled layers</span>
+          </label>
+          <div class="style-layer-options">
+            ${visibleStyleLayers.length
+              ? visibleStyleLayers.map((layer) => `
+                <label class="style-layer-option">
+                  <input
+                    type="checkbox"
+                    data-layer-id="${esc(layer.id)}"
+                    ${info.selectedStyleLayerIds.has(layer.id) ? 'checked' : ''}
+                  />
+                  <span class="style-layer-option-text">
+                    <span class="style-layer-option-id">${esc(layer.id)}</span>
+                    ${layer['source-layer']
+                      ? `<span class="style-layer-option-meta">${esc(layer['source-layer'])}</span>`
+                      : ''
+                    }
+                  </span>
+                </label>
+              `).join('')
+              : '<div class="field-hint">No styled layers match the current search.</div>'
+            }
+          </div>
+        </div>
+      </details>
+    `
+    : '<span class="field-hint">No importable style layers were found.</span>';
 
   box.innerHTML = `
     <div class="arcgis-discovery-status ${info.status === 'error' ? 'arcgis-status-error' : 'arcgis-status-ready'}">
       ${esc(info.message)}
     </div>
-    <div class="arcgis-discovery-grid">
-      <div>
-        <div class="mini-label">Source layers</div>
-        <div class="mini-chip-list">${sourceLayers}</div>
-      </div>
-      <div>
-        <div class="mini-label">Style layers${info.styleOrigin ? ` · ${esc(info.styleOrigin)}` : ''}</div>
-        <div class="mini-chip-list">${styleLayers}</div>
-      </div>
+    <div>
+      <div class="mini-label">Source layers</div>
+      <div class="mini-chip-list">${sourceLayers}</div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="mini-label">Style layers${info.styleOrigin ? ` · ${esc(info.styleOrigin)}` : ''}</div>
+      ${styleLayerPicker}
     </div>
     <label class="toggle-row${canImport ? '' : ' toggle-disabled'}">
       <div class="toggle-switch">
-        <input type="checkbox" id="importStyledLayers" ${canImport ? '' : 'disabled'} ${canImport ? 'checked' : ''} />
+        <input
+          type="checkbox"
+          id="importStyledLayers"
+          ${canImport ? '' : 'disabled'}
+          ${canImport && info.importStyledLayersEnabled ? 'checked' : ''}
+        />
         <span class="toggle-track"></span>
       </div>
-      <span class="toggle-label-text">Import all matching styled layers for this source</span>
+      <span class="toggle-label-text">Import the selected styled layers for this source</span>
     </label>
   `;
 
+  bindArcgisDiscoveryControls(canImport);
   show(box);
 }
 
 function applyUrlMethod(method) {
   const toggle = $('urlMethodToggle');
   if (!toggle) return;
-  const isUrl = method !== 'tiles';
+  const isArcgis = method === 'arcgis';
+  const isUrl = method === 'url';
+  const isTiles = method === 'tiles';
 
   toggle.querySelectorAll('.radio-btn').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.val === (isUrl ? 'url' : 'tiles'));
+    btn.classList.toggle('active', btn.dataset.val === method);
   });
 
+  setVisible($('arcgisImportGroup'), isArcgis);
   setVisible($('srcUrlGroup'), isUrl);
-  setVisible($('srcTilesGroup'), !isUrl);
+  setVisible($('srcTilesGroup'), isTiles);
 }
 
 function hydrateVectorSourceFields(sourceCandidate, preferredServiceUrl = null) {
   if (!sourceCandidate) return;
 
   const { src } = sourceCandidate;
-  const srcUrl = $('srcUrl');
+  const arcgisSrcUrl = $('arcgisSrcUrl');
   const srcTiles = $('srcTiles');
   const srcId = $('srcId');
   const attr = $('srcAttribution');
@@ -1446,8 +1605,8 @@ function hydrateVectorSourceFields(sourceCandidate, preferredServiceUrl = null) 
   }
 
   if (src.url || preferredServiceUrl) {
-    applyUrlMethod('url');
-    if (srcUrl) srcUrl.value = preferredServiceUrl || src.url;
+    applyUrlMethod('arcgis');
+    if (arcgisSrcUrl) arcgisSrcUrl.value = preferredServiceUrl || src.url;
   } else if (Array.isArray(src.tiles) && src.tiles.length && srcTiles) {
     applyUrlMethod('tiles');
     srcTiles.value = src.tiles.join('\n');
@@ -1462,7 +1621,7 @@ async function inspectArcgisVectorSource() {
   const type = $('srcType')?.value;
   if (type !== 'vector') return;
 
-  const serviceUrl = normalizeArcgisServiceUrl($('srcUrl')?.value);
+  const serviceUrl = normalizeArcgisServiceUrl($('arcgisSrcUrl')?.value);
   const styleItemId = $('arcgisStyleItemId')?.value?.trim() || '';
   const styleUrl = $('arcgisStyleUrl')?.value?.trim() || '';
 
@@ -1531,6 +1690,12 @@ async function inspectArcgisVectorSource() {
   state.modalImport.styleLayers = chosenSource
     ? (style?.layers || []).filter((layer) => layer.source === chosenSource.id)
     : [];
+  state.modalImport.selectedStyleLayerIds = new Set(
+    state.modalImport.styleLayers.map((layer) => layer.id)
+  );
+  state.modalImport.styleLayerSearch = '';
+  state.modalImport.styleLayerPickerOpen = false;
+  state.modalImport.importStyledLayersEnabled = state.modalImport.styleLayers.length > 0;
   state.modalImport.styleOrigin = styleOrigin;
 
   const successParts = [];
@@ -1599,7 +1764,7 @@ function collectLayer(sourceId, sourceType) {
 }
 
 function importDiscoveredStyleLayers(sourceId) {
-  const layers = state.modalImport?.styleLayers || [];
+  const layers = getSelectedDiscoveredStyleLayers();
   if (!layers.length) return 0;
 
   let imported = 0;
@@ -1657,10 +1822,13 @@ function validate() {
   }
 
   const activeBtn = $('urlMethodToggle')?.querySelector('.radio-btn.active');
-  const method = activeBtn?.dataset?.val || 'url';
+  const method = activeBtn?.dataset?.val || (type === 'vector' ? 'arcgis' : 'url');
 
   const needUrl = ['vector', 'raster', 'raster-dem'].includes(type);
   if (needUrl) {
+    if (type === 'vector' && method === 'arcgis' && !$('arcgisSrcUrl')?.value?.trim()) {
+      showStatus('Please enter a VectorTileServer URL.', 'error'); return false;
+    }
     if (method === 'url' && !$('srcUrl')?.value?.trim()) {
       showStatus('Please enter a URL.', 'error'); return false;
     }
@@ -1679,6 +1847,9 @@ function validate() {
   }
   if (type === 'vector' && $('importStyledLayers')?.checked && !(state.modalImport?.styleLayers?.length)) {
     showStatus('Inspect the ArcGIS source first, then import its styled layers.', 'error'); return false;
+  }
+  if (type === 'vector' && $('importStyledLayers')?.checked && !getSelectedDiscoveredStyleLayers().length) {
+    showStatus('Select at least one styled layer to import, or turn on "Include all".', 'error'); return false;
   }
 
   return true;

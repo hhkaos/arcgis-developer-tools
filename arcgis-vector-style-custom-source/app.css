@@ -786,6 +786,64 @@ a { color: var(--esri-blue); }
   font-size: 11px;
   font-family: 'SF Mono', 'Consolas', monospace;
 }
+.style-layer-picker {
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius);
+  background: white;
+}
+.style-layer-picker-summary {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+}
+.style-layer-picker-summary::-webkit-details-marker {
+  display: none;
+}
+.style-layer-picker-panel {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+  border-top: 1px solid #e2e8f0;
+}
+.modal-search-wrap {
+  margin-top: 2px;
+}
+.style-layer-options {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.style-layer-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.style-layer-option input {
+  margin-top: 2px;
+}
+.style-layer-option-all {
+  padding-bottom: 2px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.style-layer-option-text {
+  display: grid;
+  gap: 1px;
+}
+.style-layer-option-id {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  color: var(--text-secondary);
+}
+.style-layer-option-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 .toggle-disabled {
   opacity: 0.6;
   cursor: default;
