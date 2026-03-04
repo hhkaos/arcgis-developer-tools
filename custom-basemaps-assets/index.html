@@ -3,15 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Custom Basemap Assets</title>
+    <title>Layer Palette</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="h-full bg-gray-50 text-gray-900 flex flex-col">
 
     <!-- Header -->
     <header class="flex-none bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4 z-10">
-      <div class="flex items-center gap-2 flex-none">
-        <span class="text-lg font-semibold text-gray-800">Custom Basemap Assets</span>
+      <div class="flex flex-col flex-none">
+        <span class="text-base font-semibold text-gray-900 leading-tight">Layer Palette</span>
+        <span class="text-xs text-gray-400 leading-tight">Curated ArcGIS layers for composing beautiful custom basemaps</span>
       </div>
 
       <!-- Search -->
@@ -58,7 +59,8 @@
       <main class="flex-1 min-w-0 flex flex-col">
 
         <!-- Card grid view -->
-        <div id="grid-view" class="flex-1 overflow-y-auto scrollbar-thin p-4">
+        <div id="grid-view" class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-3">
+          <div id="type-filter-bar" class="flex flex-wrap gap-1.5"></div>
           <div id="card-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           </div>
           <div id="empty-state" class="hidden flex-col items-center justify-center h-64 text-gray-400"></div>

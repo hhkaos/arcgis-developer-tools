@@ -8,22 +8,22 @@ import { invalidateAllCache, getCacheAge } from "./cache.js";
 const state = {
   selectedCategory: "all",
   searchQuery: "",
+  selectedTypes: new Set(), // type strings currently filtered; empty = show all
   metadata: {}, // itemId → metadata | Error
   loading: new Set(), // itemIds currently being fetched
 };
 
 // ─── Derived: items visible given current category + search ──────────────────
 
-function getVisibleItems() {
+// Items matching category + search, before type-chip filter
+function getFilteredItemsBase() {
   const q = state.searchQuery.toLowerCase().trim();
 
   return assetsConfig.items.filter((item) => {
-    // Category filter
     if (state.selectedCategory !== "all") {
       if (!item.categories.includes(state.selectedCategory)) return false;
     }
 
-    // Search filter
     if (q) {
       const meta = state.metadata[item.id];
       const title = (item.hardcoded?.title ?? meta?.title ?? "").toLowerCase();
@@ -39,6 +39,15 @@ function getVisibleItems() {
     }
 
     return true;
+  });
+}
+
+function getVisibleItems() {
+  const base = getFilteredItemsBase();
+  if (state.selectedTypes.size === 0) return base;
+  return base.filter((item) => {
+    const type = item.hardcoded?.type ?? state.metadata[item.id]?.type ?? "";
+    return state.selectedTypes.has(type);
   });
 }
 
@@ -133,15 +142,15 @@ function renderSidebar() {
     const isActive = state.selectedCategory === cat.id;
     const btn = document.createElement("button");
     btn.dataset.category = cat.id;
-    btn.className = `category-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+    btn.className = `category-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-start gap-2 transition-colors ${
       isActive
         ? "bg-blue-50 text-blue-700"
         : "text-gray-600 hover:bg-gray-100"
     }`;
     btn.innerHTML = `
-      <span>${cat.icon}</span>
-      <span class="truncate">${cat.label}</span>
-      <span class="ml-auto text-xs font-normal ${isActive ? "text-blue-500" : "text-gray-400"}">${count}</span>
+      <span class="flex-none">${cat.icon}</span>
+      <span class="flex-1 leading-snug">${cat.label}</span>
+      <span class="flex-none text-xs font-normal ${isActive ? "text-blue-500" : "text-gray-400"}">${count}</span>
     `;
     nav.appendChild(btn);
   });
@@ -318,6 +327,40 @@ function renderCard(item) {
   return card;
 }
 
+// ─── Type filter chips ────────────────────────────────────────────────────────
+
+function renderTypeChips() {
+  const bar = document.getElementById("type-filter-bar");
+  const baseItems = getFilteredItemsBase();
+
+  // Tally types present in the current base-filtered set
+  const typeCounts = {};
+  baseItems.forEach((item) => {
+    const type = item.hardcoded?.type ?? state.metadata[item.id]?.type ?? "";
+    if (type) typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+  });
+
+  const types = Object.keys(typeCounts);
+
+  // No point showing chips when ≤1 distinct type
+  if (types.length <= 1) {
+    bar.innerHTML = "";
+    return;
+  }
+
+  bar.innerHTML = types.map((type) => {
+    const isActive = state.selectedTypes.has(type);
+    const badge = TYPE_BADGE[type] ?? { label: type, cls: "bg-gray-100 text-gray-600" };
+    const count = typeCounts[type];
+    const activeCls = `${badge.cls} ring-1 ring-current`;
+    const inactiveCls = "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600";
+    return `<button data-type-chip="${type}"
+      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${isActive ? activeCls : inactiveCls}">
+      ${badge.label}<span class="font-normal opacity-60">${count}</span>
+    </button>`;
+  }).join("");
+}
+
 // ─── Grid rendering ───────────────────────────────────────────────────────────
 
 function countItemsAcrossAllCategories() {
@@ -329,6 +372,7 @@ function countItemsAcrossAllCategories() {
 }
 
 function renderGrid() {
+  renderTypeChips();
   const grid = document.getElementById("card-grid");
   const empty = document.getElementById("empty-state");
   const visible = getVisibleItems();
@@ -361,14 +405,25 @@ function renderGrid() {
       <p class="text-xs text-gray-400 mt-1">
         ${hiddenCount} result${hiddenCount !== 1 ? "s" : ""} found in other categories
       </p>
-      <button id="show-all-results"
-        class="mt-3 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
-        Show all ${hiddenCount} result${hiddenCount !== 1 ? "s" : ""}
-      </button>
+      <div class="mt-3 flex items-center gap-2">
+        <button id="show-all-results"
+          class="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+          Show all ${hiddenCount} result${hiddenCount !== 1 ? "s" : ""}
+        </button>
+        <button id="clear-search"
+          class="px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          Clear search
+        </button>
+      </div>
     `;
     document.getElementById("show-all-results").addEventListener("click", () => {
       state.selectedCategory = "all";
       renderSidebar();
+      renderGrid();
+    });
+    document.getElementById("clear-search").addEventListener("click", () => {
+      state.searchQuery = "";
+      document.getElementById("search-input").value = "";
       renderGrid();
     });
   } else {
@@ -591,7 +646,22 @@ async function init() {
     if (!btn) return;
     closePreview();
     state.selectedCategory = btn.dataset.category;
+    state.selectedTypes.clear();
     renderSidebar();
+    renderGrid();
+  });
+
+  // Type filter chip clicks
+  document.getElementById("type-filter-bar").addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-type-chip]");
+    if (!chip) return;
+    const type = chip.dataset.typeChip;
+    if (state.selectedTypes.has(type)) {
+      state.selectedTypes.delete(type);
+    } else {
+      state.selectedTypes.add(type);
+    }
+    renderTypeChips();
     renderGrid();
   });
 
