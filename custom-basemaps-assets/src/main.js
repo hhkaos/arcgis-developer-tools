@@ -17,33 +17,167 @@ const ISSUE_URL = "https://github.com/hhkaos/arcgis-developer-tools/issues";
 const CONTACT_URL = "https://links.rauljimenez.info/";
 const VALID_CATEGORY_IDS = new Set(["all", ...assetsConfig.categories.map((cat) => cat.id)]);
 
+const SEARCH_FIELD_WEIGHTS = {
+  title: 12,
+  snippet: 8,
+  description: 5,
+  type: 6,
+  tags: 4,
+  typeKeywords: 3,
+  itemId: 2,
+};
+
+function normalizeSearchText(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function splitSearchTerms(value) {
+  const normalized = normalizeSearchText(value);
+  return normalized ? normalized.split(/\s+/).filter(Boolean) : [];
+}
+
+function isSubsequenceMatch(needle, haystack) {
+  let needleIndex = 0;
+  for (let i = 0; i < haystack.length && needleIndex < needle.length; i++) {
+    if (haystack[i] === needle[needleIndex]) needleIndex++;
+  }
+  return needleIndex === needle.length;
+}
+
+function getLevenshteinDistance(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  let prev = Array.from({ length: b.length + 1 }, (_, idx) => idx);
+
+  for (let i = 0; i < a.length; i++) {
+    const curr = [i + 1];
+    for (let j = 0; j < b.length; j++) {
+      const cost = a[i] === b[j] ? 0 : 1;
+      curr[j + 1] = Math.min(
+        curr[j] + 1,
+        prev[j + 1] + 1,
+        prev[j] + cost
+      );
+    }
+    prev = curr;
+  }
+
+  return prev[b.length];
+}
+
+function getFieldMatchStrength(term, text) {
+  if (!term || !text) return 0;
+  if (text === term) return 1;
+
+  const words = text.split(/\s+/).filter(Boolean);
+
+  if (words.includes(term)) return 0.97;
+  if (text.startsWith(term)) return 0.93;
+  if (words.some((word) => word.startsWith(term))) return 0.88;
+  if (text.includes(term)) return 0.74;
+
+  let best = 0;
+  for (const word of words) {
+    if (word.length < 3 || term.length < 3) continue;
+
+    const maxLen = Math.max(word.length, term.length);
+    const maxDistance = Math.max(1, Math.floor(maxLen * 0.34));
+    const distance = getLevenshteinDistance(term, word);
+    if (distance <= maxDistance) {
+      const similarity = 1 - distance / maxLen;
+      best = Math.max(best, 0.45 + similarity * 0.35);
+    } else if (isSubsequenceMatch(term, word)) {
+      const density = term.length / word.length;
+      best = Math.max(best, 0.35 + density * 0.2);
+    }
+  }
+
+  return best;
+}
+
+function getSearchFields(item) {
+  const meta = state.metadata[item.id];
+
+  return {
+    title: normalizeSearchText(item.hardcoded?.title ?? meta?.title),
+    snippet: normalizeSearchText(item.hardcoded?.snippet ?? meta?.snippet),
+    description: normalizeSearchText(meta?.description),
+    type: normalizeSearchText(item.hardcoded?.type ?? meta?.type),
+    tags: normalizeSearchText((meta?.tags ?? []).join(" ")),
+    typeKeywords: normalizeSearchText((meta?.typeKeywords ?? []).join(" ")),
+    itemId: normalizeSearchText(item.id),
+  };
+}
+
+function getSearchScore(item, rawQuery) {
+  const query = normalizeSearchText(rawQuery);
+  if (!query) return 0;
+
+  const terms = splitSearchTerms(query);
+  if (terms.length === 0) return 0;
+
+  const fields = getSearchFields(item);
+  let totalScore = 0;
+
+  for (const term of terms) {
+    let termScore = 0;
+
+    for (const [fieldName, weight] of Object.entries(SEARCH_FIELD_WEIGHTS)) {
+      const matchStrength = getFieldMatchStrength(term, fields[fieldName]);
+      if (matchStrength > 0) {
+        termScore += matchStrength * weight;
+      }
+    }
+
+    if (termScore === 0) return 0;
+    totalScore += termScore;
+  }
+
+  if (fields.title.startsWith(query)) totalScore += 10;
+  else if (fields.title.includes(query)) totalScore += 7;
+
+  if (fields.snippet.startsWith(query)) totalScore += 5;
+  else if (fields.snippet.includes(query)) totalScore += 3;
+
+  if (fields.description.includes(query)) totalScore += 2;
+
+  return totalScore;
+}
+
 // ─── Derived: items visible given current category + search ──────────────────
 
 // Items matching category + search, before type-chip filter
 function getFilteredItemsBase() {
-  const q = state.searchQuery.toLowerCase().trim();
+  const q = state.searchQuery.trim();
+  const rankedItems = [];
 
-  return assetsConfig.items.filter((item) => {
+  assetsConfig.items.forEach((item, index) => {
     if (state.selectedCategory !== "all") {
-      if (!item.categories.includes(state.selectedCategory)) return false;
+      if (!item.categories.includes(state.selectedCategory)) return;
     }
 
-    if (q) {
-      const meta = state.metadata[item.id];
-      const title = (item.hardcoded?.title ?? meta?.title ?? "").toLowerCase();
-      const snippet = (item.hardcoded?.snippet ?? meta?.snippet ?? "").toLowerCase();
-      const type = (item.hardcoded?.type ?? meta?.type ?? "").toLowerCase();
-      const tags = (meta?.tags ?? []).join(" ").toLowerCase();
-      if (
-        !title.includes(q) &&
-        !snippet.includes(q) &&
-        !type.includes(q) &&
-        !tags.includes(q)
-      ) return false;
+    if (!q) {
+      rankedItems.push({ item, index, score: 0 });
+      return;
     }
 
-    return true;
+    const score = getSearchScore(item, q);
+    if (score > 0) {
+      rankedItems.push({ item, index, score });
+    }
   });
+
+  if (!q) {
+    return rankedItems.map(({ item }) => item);
+  }
+
+  rankedItems.sort((a, b) => b.score - a.score || a.index - b.index);
+  return rankedItems.map(({ item }) => item);
 }
 
 function getVisibleItems() {
