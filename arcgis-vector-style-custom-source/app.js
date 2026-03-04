@@ -8,6 +8,10 @@
 
 const STYLE_URL = (id) =>
   `https://www.arcgis.com/sharing/rest/content/items/${id}/resources/styles/root.json?f=pjson`;
+const ITEM_URL = (id) =>
+  `https://www.arcgis.com/sharing/rest/content/items/${id}?f=pjson`;
+const ITEM_DATA_URL = (id) =>
+  `https://www.arcgis.com/sharing/rest/content/items/${id}/data?f=pjson`;
 
 const JSON_PREVIEW_MAX_LAYERS = 400;
 
@@ -54,6 +58,8 @@ const state = {
   addedLayerIds:new Set(),
   modalImport:  null,
   map:          null,
+  previewView:  null,
+  previewStyleUrl: null,
   sortable:     null,
   layerElements:new Map(),
   layersDirty:  true,
@@ -124,6 +130,11 @@ function appendQuery(url, key, value) {
   return `${url}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
 }
 
+function buildArcgisRootStyleUrl(serviceUrl) {
+  const normalized = normalizeArcgisServiceUrl(serviceUrl);
+  return normalized ? appendQuery(`${normalized}/resources/styles/root.json`, 'f', 'pjson') : null;
+}
+
 function normalizeArcgisServiceUrl(url) {
   if (!url) return null;
   const raw = String(url).trim();
@@ -190,22 +201,182 @@ function collectSourceLayerNames(serviceMeta, style, styleSourceId) {
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} – ${res.statusText}`);
-  return res.json();
+  const data = await res.json();
+  return { data, responseUrl: res.url || url };
+}
+
+function loadArcgisModules(modules) {
+  return new Promise((resolve, reject) => {
+    if (typeof window.require !== 'function') {
+      reject(new Error('ArcGIS JavaScript SDK failed to load.'));
+      return;
+    }
+
+    window.require(modules, (...loaded) => resolve(loaded), reject);
+  });
+}
+
+function absolutizeUrl(url, baseUrl) {
+  if (typeof url !== 'string' || !url.trim()) return url;
+  if (!baseUrl) return url;
+
+  const templateTokens = [];
+  const protectedUrl = url.replace(/\{[^}]+\}/g, (token) => {
+    const marker = `__CODEx_TOKEN_${templateTokens.length}__`;
+    templateTokens.push(token);
+    return marker;
+  });
+
+  try {
+    let resolved = new URL(protectedUrl, baseUrl).toString();
+    templateTokens.forEach((token, index) => {
+      resolved = resolved.replace(`__CODEx_TOKEN_${index}__`, token);
+    });
+    return resolved;
+  } catch {
+    return url;
+  }
+}
+
+function normalizeSpriteUrl(url, baseUrl) {
+  const resolved = absolutizeUrl(url, baseUrl);
+  if (typeof resolved !== 'string' || !resolved.trim()) return resolved;
+
+  try {
+    const parsed = new URL(resolved);
+    parsed.pathname = parsed.pathname.replace(/(?:@2x)?\.(?:json|png)$/i, '');
+    return parsed.toString();
+  } catch {
+    return resolved.replace(/(?:@2x)?\.(?:json|png)(?=$|[?#])/i, '');
+  }
+}
+
+function normalizeStyleAssetUrls(style, baseUrl) {
+  if (!style || typeof style !== 'object') return style;
+
+  const normalized = {
+    ...style,
+    glyphs: absolutizeUrl(style.glyphs, baseUrl),
+    sprite: normalizeSpriteUrl(style.sprite, baseUrl),
+  };
+
+  if (!style.sources || typeof style.sources !== 'object') return normalized;
+
+  normalized.sources = Object.fromEntries(
+    Object.entries(style.sources).map(([id, src]) => {
+      if (!src || typeof src !== 'object') return [id, src];
+      return [id, {
+        ...src,
+        url: absolutizeUrl(src.url, baseUrl),
+      }];
+    })
+  );
+
+  return normalized;
+}
+
+function buildSpriteAssetUrl(spriteBase, suffix) {
+  if (typeof spriteBase !== 'string' || !spriteBase.trim()) return null;
+  const match = spriteBase.trim().match(/^([^?#]+)([?#].*)?$/);
+  if (!match) return null;
+  return `${match[1]}${suffix}${match[2] || ''}`;
+}
+
+function collectStaticIconNames(style) {
+  const icons = new Set();
+
+  for (const layer of style?.layers || []) {
+    const icon = layer?.layout?.['icon-image'];
+    if (typeof icon === 'string' && icon.trim()) {
+      const trimmed = icon.trim();
+      // Skip tokenized icon names such as `Road/.../{_len}` because these are
+      // runtime templates, not literal sprite keys.
+      if (!/[{}]/.test(trimmed)) {
+        icons.add(trimmed);
+      }
+    }
+  }
+
+  return [...icons].sort((a, b) => a.localeCompare(b));
+}
+
+async function inspectSpriteAssets(style) {
+  const spriteBase = typeof style?.sprite === 'string' ? style.sprite.trim() : '';
+  if (!spriteBase) {
+    return {
+      spriteBase: null,
+      warnings: [],
+      iconNames: [],
+      manifestChecks: [],
+    };
+  }
+
+  const warnings = [];
+  const iconNames = collectStaticIconNames(style);
+  const manifestTargets = [
+    { label: '1x', url: buildSpriteAssetUrl(spriteBase, '.json') },
+    { label: '2x', url: buildSpriteAssetUrl(spriteBase, '@2x.json') },
+  ].filter((target) => !!target.url);
+
+  const manifestChecks = [];
+
+  for (const target of manifestTargets) {
+    try {
+      const { data } = await fetchJson(target.url);
+      const missingIcons = iconNames.filter((icon) => !Object.prototype.hasOwnProperty.call(data, icon));
+
+      if (missingIcons.length) {
+        warnings.push(
+          `${target.label} sprite manifest is missing ${missingIcons.length} referenced icon${missingIcons.length === 1 ? '' : 's'}.`
+        );
+      }
+
+      manifestChecks.push({
+        label: target.label,
+        url: target.url,
+        ok: true,
+        iconCount: Object.keys(data || {}).length,
+        missingIcons,
+      });
+    } catch (err) {
+      warnings.push(`${target.label} sprite manifest could not be fetched (${err.message}).`);
+      manifestChecks.push({
+        label: target.label,
+        url: target.url,
+        ok: false,
+        error: err.message,
+        missingIcons: [],
+      });
+    }
+  }
+
+  return {
+    spriteBase,
+    warnings,
+    iconNames,
+    manifestChecks,
+  };
 }
 
 async function fetchArcgisServiceInfo(serviceUrl) {
-  const data = await fetchJson(appendQuery(serviceUrl, 'f', 'pjson'));
+  const { data } = await fetchJson(appendQuery(serviceUrl, 'f', 'pjson'));
+  if (data?.error) throw new Error(`ArcGIS ${data.error.code}: ${data.error.message}`);
+  return data;
+}
+
+async function fetchArcgisItemInfo(itemId) {
+  const { data } = await fetchJson(ITEM_URL(itemId.trim()));
   if (data?.error) throw new Error(`ArcGIS ${data.error.code}: ${data.error.message}`);
   return data;
 }
 
 async function fetchStyleFromUrl(styleUrl) {
-  const data = await fetchJson(styleUrl);
+  const { data, responseUrl } = await fetchJson(styleUrl);
   if (data?.error) throw new Error(`ArcGIS ${data.error.code}: ${data.error.message}`);
   if (!data?.version || !Array.isArray(data.layers)) {
     throw new Error('Response is not a valid Mapbox GL style.');
   }
-  return data;
+  return normalizeStyleAssetUrls(data, responseUrl);
 }
 
 // ═══ JSON Highlighting ════════════════════════════════════════════════════════
@@ -1124,7 +1295,7 @@ async function inspectArcgisVectorSource() {
     styleItemId ? { label: 'style item', fetcher: () => fetchStyle(styleItemId) } : null,
     serviceUrl ? {
       label: 'service root style',
-      fetcher: () => fetchStyleFromUrl(appendQuery(`${serviceUrl}/resources/styles/root.json`, 'f', 'pjson')),
+      fetcher: () => fetchStyleFromUrl(buildArcgisRootStyleUrl(serviceUrl)),
     } : null,
   ].filter(Boolean);
 
@@ -1515,34 +1686,131 @@ async function previewMap() {
   $('mapHint').textContent = 'Resolving tile sources…';
 
   const resolved = resolveStyleForPreview(style);
+  const spriteDiagnostics = await inspectSpriteAssets(resolved);
+  const vectorSourceDebug = Object.fromEntries(
+    Object.entries(resolved.sources || {})
+      .filter(([, src]) => src?.type === 'vector')
+      .map(([id, src]) => [id, { url: src.url, tiles: src.tiles }])
+  );
+  console.info('[Preview style assets]', {
+    sprite: resolved.sprite,
+    glyphs: resolved.glyphs,
+    vectorSources: vectorSourceDebug,
+    spriteDiagnostics,
+  });
 
-  if (state.map) {
-    try {
-      state.map.setStyle(resolved);
-    } catch {
-      state.map.remove();
-      state.map = null;
-      initMap(resolved);
-    }
-    return;
+  if (spriteDiagnostics.warnings.length) {
+    showStatus('Sprite diagnostics found issues. See console for details.', 'info');
+    console.warn('[Sprite diagnostics]', spriteDiagnostics);
   }
-  initMap(resolved);
+  await initMap(resolved);
 }
 
-function initMap(style) {
+function destroyPreviewMap() {
+  if (state.map) {
+    state.map.remove();
+    state.map = null;
+  }
+
+  if (state.previewView) {
+    state.previewView.destroy();
+    state.previewView = null;
+  }
+
+  if (state.previewStyleUrl) {
+    URL.revokeObjectURL(state.previewStyleUrl);
+    state.previewStyleUrl = null;
+  }
+
+  $('map').innerHTML = '';
+}
+
+function hasUnsavedPreviewChanges() {
+  if (!state.original) return false;
+  if (Object.keys(state.addedSources).length) return true;
+  if (state.addedLayerIds.size) return true;
+  if (state.layers.length !== state.original.layers.length) return true;
+
+  return state.layers.some((layer, index) => {
+    const originalLayer = state.original.layers[index];
+    return !originalLayer || originalLayer.id !== layer.id;
+  });
+}
+
+async function initMap(style) {
+  destroyPreviewMap();
+
+  if (!state.itemId) {
+    $('mapHint').textContent = 'Load a style item first';
+    return;
+  }
+
+  if (hasUnsavedPreviewChanges()) {
+    $('mapHint').textContent = 'Previewing edited style with MapLibre';
+    initMapLibreMap(style);
+    return;
+  }
+
+  const [ArcGISMap, MapView, Basemap, VectorTileLayer, PortalItem] = await loadArcgisModules([
+    'esri/Map',
+    'esri/views/MapView',
+    'esri/Basemap',
+    'esri/layers/VectorTileLayer',
+    'esri/portal/PortalItem',
+  ]);
+
+  const vectorTileLayer = new VectorTileLayer({
+    portalItem: new PortalItem({
+      id: state.itemId,
+    }),
+  });
+
+  const map = new ArcGISMap({
+    basemap: new Basemap({
+      baseLayers: [vectorTileLayer],
+    }),
+  });
+
+  const view = new MapView({
+    container: 'map',
+    map,
+    center: style.center || [0, 0],
+    zoom: style.zoom ?? 2,
+    rotation: style.bearing || 0,
+  });
+
+  state.previewView = view;
+
+  vectorTileLayer.when(() => {
+    $('mapHint').textContent = 'Style layer loaded';
+  }).catch((err) => {
+    console.warn('[ArcGIS SDK layer]', err);
+    $('mapHint').textContent = 'Style layer error – see console';
+  });
+
+  view.when(() => {
+    $('mapHint').textContent = 'Style loaded';
+  }).catch((err) => {
+    console.warn('[ArcGIS SDK view]', err);
+    $('mapHint').textContent = 'Map error – see console';
+  });
+}
+
+function initMapLibreMap(style) {
   state.map = new maplibregl.Map({
     container: 'map',
     style,
-    center:  style.center  || [0, 0],
-    zoom:    style.zoom    || 2,
+    center: style.center || [0, 0],
+    zoom: style.zoom ?? 2,
     bearing: style.bearing || 0,
-    pitch:   style.pitch   || 0,
+    pitch: style.pitch || 0,
     attributionControl: false,
   });
+
   state.map.addControl(new maplibregl.NavigationControl(), 'top-right');
   state.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-  state.map.on('load',  () => { $('mapHint').textContent = 'Style loaded'; });
-  state.map.on('style.load', () => { $('mapHint').textContent = 'Style applied'; });
+  state.map.on('load', () => { $('mapHint').textContent = 'Edited style loaded'; });
+  state.map.on('style.load', () => { $('mapHint').textContent = 'Edited style applied'; });
   state.map.on('error', (e) => {
     console.warn('[MapLibre]', e.error?.message || e);
     $('mapHint').textContent = 'Map error – see console';
@@ -1590,7 +1858,7 @@ async function loadStyle() {
   state.layerElements = new Map();
   state.emptyLayerRow = null;
   state.layersDirty = true;
-  if (state.map) { state.map.remove(); state.map = null; }
+  destroyPreviewMap();
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
 
   hideStatus();
@@ -1623,12 +1891,41 @@ async function loadStyle() {
 }
 
 async function fetchStyle(itemId) {
-  const res = await fetch(STYLE_URL(itemId.trim()));
-  if (!res.ok) throw new Error(`HTTP ${res.status} – ${res.statusText}`);
-  const data = await res.json();
-  if (data.error) throw new Error(`ArcGIS ${data.error.code}: ${data.error.message}`);
-  if (!data.version || !data.layers) throw new Error('Response is not a valid Mapbox GL style.');
-  return data;
+  const id = itemId.trim();
+  const errors = [];
+
+  const directAttempts = [
+    { label: 'item resource style', fetcher: () => fetchStyleFromUrl(STYLE_URL(id)) },
+    { label: 'item data style', fetcher: () => fetchStyleFromUrl(ITEM_DATA_URL(id)) },
+  ];
+
+  for (const attempt of directAttempts) {
+    try {
+      return await attempt.fetcher();
+    } catch (err) {
+      errors.push(`${attempt.label}: ${err.message}`);
+    }
+  }
+
+  let itemInfo = null;
+  try {
+    itemInfo = await fetchArcgisItemInfo(id);
+  } catch (err) {
+    errors.push(`item info: ${err.message}`);
+  }
+
+  const fallbackUrl = buildArcgisRootStyleUrl(itemInfo?.url)
+    || (typeof itemInfo?.url === 'string' && itemInfo.url.trim() ? itemInfo.url : null);
+
+  if (fallbackUrl) {
+    try {
+      return await fetchStyleFromUrl(fallbackUrl);
+    } catch (err) {
+      errors.push(`item URL: ${err.message}`);
+    }
+  }
+
+  throw new Error(errors[0] || 'Unable to resolve style from the ArcGIS item.');
 }
 
 // ═══ Event Listeners ══════════════════════════════════════════════════════════
