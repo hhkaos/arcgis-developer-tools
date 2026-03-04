@@ -1,4 +1,11 @@
 node_modules/
 .playwright-mcp/
 .claude
+
+# Build artifacts are produced in CI for Pages deploy
 blend-modes-explorer/assets/
+blend-modes-explorer/dist/
+
+# Keep project tracked; ignore build/dependency artifacts only
+basemap-effects-code-explorer/dist/
+basemap-effects-code-explorer/node_modules/
