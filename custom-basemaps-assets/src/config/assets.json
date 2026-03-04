@@ -1,0 +1,295 @@
+{
+  "categories": [
+    {
+      "id": "base-layers",
+      "label": "Base Layers",
+      "icon": "🗺️"
+    },
+    {
+      "id": "reference-labels",
+      "label": "Reference Labels",
+      "icon": "🏷️"
+    },
+    {
+      "id": "contours-boundaries",
+      "label": "Contours & Boundaries",
+      "icon": "🌍"
+    },
+    {
+      "id": "decoration",
+      "label": "Decoration",
+      "icon": "🎨"
+    },
+    {
+      "id": "population-infrastructure",
+      "label": "Population & Infrastructure",
+      "icon": "🏙️"
+    },
+    {
+      "id": "utils",
+      "label": "Utils",
+      "icon": "🔧"
+    }
+  ],
+  "items": [
+    {
+      "id": "97fa1365da1e43eabb90d0364326bc2d",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "bc23aa518e664fbfa4de9f30fd1ef472",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "1ddbb25aa29c4811aaadd94de469856a",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "92cb9830a1f34398b32f8b52fc1f3312",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "2afe5b807fa74006be6363fd243ffb30",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "07a80fa9a4904cc88061c17cc055a173",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "005b8960ddd04ae781df8d471b6726b3",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "291da5eab3a0412593b66d384379f89f",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "1e126e7520f9466c9ca28b8f28b5e500",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "5e9b3685f4c24d8781073dd928ebda50",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "96cff8b8e48d45548833f19e29f09943",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "e9cacfd187904614884c16aa52a21cac",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "e3ac9818c0c344538840e51e9f33f6cc",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "7b644af381204ba78fd2f0808294357b",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "16b160b285e040578c6863ca9b460447",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "91591536f18844d597366363c22d54df",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "d6e5bfbe9e0b4ad0bd200262bef745b0",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "4dd826e83b044acfb519a26fc9b20f80",
+      "categories": ["base-layers"]
+    },
+    {
+      "id": "ba52238d338745b1a355407ec9df6768",
+      "categories": ["reference-labels"]
+    },
+    {
+      "id": "de2b349f60254bf094c9d7b3482e9595",
+      "categories": ["reference-labels"]
+    },
+    {
+      "id": "1768e8369a214dfab4e2167d5c5f2454",
+      "categories": ["reference-labels"]
+    },
+    {
+      "id": "946b41c44c9549758b89f50ce9d8872d",
+      "categories": ["reference-labels"]
+    },
+    {
+      "id": "c23483af71a5455e914719a3f344d1c9",
+      "categories": ["reference-labels"]
+    },
+    {
+      "id": "_external_other-reference-layers",
+      "categories": ["reference-labels"],
+      "hardcoded": {
+        "title": "Other Reference Layers",
+        "snippet": "Browse all reference layers available on ArcGIS Living Atlas.",
+        "thumbnailUrl": "",
+        "externalUrl": "https://livingatlas.arcgis.com/en/browse/?q=Reference#q=Reference&d=2&type=layers",
+        "type": "External"
+      }
+    },
+    {
+      "id": "1b243539f4514b6ba35e7d995890db1d",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "428539ef9cab4017b69d15a40a9ee98b",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "57c1ade4fa7c4e2384e6a23f2b3bd254",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "1627d2eff2ef4fb0874171b9aa67ee07",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "252231a95d404c549d69b883ec6a1469",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "58a541efc59545e6b7137f961d7de883",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "d27834f9df384c56b3099d663071b5c1",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "a57be56f4279434b9f400620e70a99f5",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "f5e12fc33a9a4d509daf2cbc0c8814f2",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "0f26b79821374a59b306326e7d76c6b5",
+      "categories": ["contours-boundaries"]
+    },
+    {
+      "id": "_external_boundaries",
+      "categories": ["contours-boundaries"],
+      "hardcoded": {
+        "title": "Administrative Boundaries",
+        "snippet": "Browse all administrative boundary layers on ArcGIS Living Atlas.",
+        "thumbnailUrl": "",
+        "externalUrl": "https://livingatlas.arcgis.com/en/browse/#d=2&type=layers&rgnCode=WO&categories=Administrative",
+        "type": "External"
+      }
+    },
+    {
+      "id": "34b03208322246b08665189c0fffab7b",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "b0c7f075d98e4b91b6cd2bdfaf7288af",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "2b6cee5cda214800b803a8498af867b9",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "4a2be37c9cb1416eaaf21d0dbd9532af",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "e855294d99d9461da13799beab7548cc",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "bc2eaab0edbd49e3aad8c0a878f85b7f",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "df56c5e62ddb40c2ade6ff498c72ee2b",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "7b19a92d0c984a4da2e06889c2b4ea89",
+      "categories": ["decoration"]
+    },
+    {
+      "id": "_external_global-hexbins",
+      "categories": ["decoration"],
+      "hardcoded": {
+        "title": "Global Hexbins",
+        "snippet": "Browse Global Hexbin layers on ArcGIS Living Atlas for use as decorative grids.",
+        "thumbnailUrl": "",
+        "externalUrl": "https://livingatlas.arcgis.com/en/browse/?q=Global%20Hexbins#q=Global+Hexbins&d=2&type=layers&rgnCode=WO",
+        "type": "External"
+      }
+    },
+    {
+      "id": "b8fec5af7dfe4866b1b8ac2d2800f282",
+      "categories": ["population-infrastructure"]
+    },
+    {
+      "id": "c444b24b184c4523a5dc96248bfea4e1",
+      "categories": ["population-infrastructure"]
+    },
+    {
+      "id": "750547cb5375480d9d21750e91426bfc",
+      "categories": ["population-infrastructure"]
+    },
+    {
+      "id": "_external_esri-osm-feature-layers",
+      "categories": ["population-infrastructure"],
+      "hardcoded": {
+        "title": "Esri Feature Layers for OSM",
+        "snippet": "A curated group of Esri-maintained feature layers sourced from OpenStreetMap data.",
+        "thumbnailUrl": "",
+        "externalUrl": "https://www.arcgis.com/home/group.html?sortField=title&sortOrder=asc&focus=layers&id=bdf6c800b3ae453b9db239e03d7c1727#content",
+        "type": "External"
+      }
+    },
+    {
+      "id": "dd161d7bc6d1440893118b6c1f03d866",
+      "categories": ["utils"]
+    },
+    {
+      "id": "_external_effects-docs",
+      "categories": ["utils"],
+      "hardcoded": {
+        "title": "Effects Documentation",
+        "snippet": "Official ArcGIS Online documentation for applying effects to layers and maps.",
+        "thumbnailUrl": "",
+        "externalUrl": "https://doc.arcgis.com/en/arcgis-online/create-maps/use-effects.htm",
+        "type": "External"
+      }
+    },
+    {
+      "id": "c4da1e9ee80744e1ace25813cab6ce4b",
+      "categories": ["utils"]
+    },
+    {
+      "id": "45407e67af5941c59da3e0bd78a11b77",
+      "categories": ["utils"]
+    },
+    {
+      "id": "10fbac90161940988773823083dcbfb0",
+      "categories": ["utils"]
+    },
+    {
+      "id": "a6cb0b820569470d9cb2da9d0677ef54",
+      "categories": ["utils"]
+    },
+    {
+      "id": "416001ff06ed48438860bfd370ccacf1",
+      "categories": ["utils"]
+    },
+    {
+      "id": "7934b0736dda4e8eba647bcdd5f159ca",
+      "categories": ["utils"]
+    }
+  ]
+}

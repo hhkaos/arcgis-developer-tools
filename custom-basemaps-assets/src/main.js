@@ -1,0 +1,647 @@
+import "./style.css";
+import assetsConfig from "./config/assets.json";
+import { fetchItemMetadata, fetchAllMetadata, getItemPageUrl, getMapViewerUrl } from "./api.js";
+import { invalidateAllCache, getCacheAge } from "./cache.js";
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+const state = {
+  selectedCategory: "all",
+  searchQuery: "",
+  metadata: {}, // itemId → metadata | Error
+  loading: new Set(), // itemIds currently being fetched
+};
+
+// ─── Derived: items visible given current category + search ──────────────────
+
+function getVisibleItems() {
+  const q = state.searchQuery.toLowerCase().trim();
+
+  return assetsConfig.items.filter((item) => {
+    // Category filter
+    if (state.selectedCategory !== "all") {
+      if (!item.categories.includes(state.selectedCategory)) return false;
+    }
+
+    // Search filter
+    if (q) {
+      const meta = state.metadata[item.id];
+      const title = (item.hardcoded?.title ?? meta?.title ?? "").toLowerCase();
+      const snippet = (item.hardcoded?.snippet ?? meta?.snippet ?? "").toLowerCase();
+      const type = (item.hardcoded?.type ?? meta?.type ?? "").toLowerCase();
+      const tags = (meta?.tags ?? []).join(" ").toLowerCase();
+      if (
+        !title.includes(q) &&
+        !snippet.includes(q) &&
+        !type.includes(q) &&
+        !tags.includes(q)
+      ) return false;
+    }
+
+    return true;
+  });
+}
+
+// ─── Type badge helpers ───────────────────────────────────────────────────────
+
+const TYPE_BADGE = {
+  "Vector Tile Layer": { label: "Vector Tile", cls: "bg-indigo-100 text-indigo-700" },
+  "Map Service": { label: "Map Service", cls: "bg-amber-100 text-amber-700" },
+  "Feature Service": { label: "Feature Service", cls: "bg-green-100 text-green-700" },
+  "Image Service": { label: "Image Service", cls: "bg-yellow-100 text-yellow-700" },
+  "Web Map": { label: "Web Map", cls: "bg-blue-100 text-blue-700" },
+  "Web Scene": { label: "Web Scene", cls: "bg-cyan-100 text-cyan-700" },
+  "External": { label: "External", cls: "bg-orange-100 text-orange-700" },
+};
+
+function typeBadge(type) {
+  const info = TYPE_BADGE[type] ?? { label: type, cls: "bg-gray-100 text-gray-600" };
+  return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${info.cls}">${info.label}</span>`;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg = "Copied!") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.remove("opacity-0");
+  el.classList.add("opacity-100");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove("opacity-100");
+    el.classList.add("opacity-0");
+  }, 1800);
+}
+
+// ─── Copy to clipboard ────────────────────────────────────────────────────────
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Item ID copied!");
+  } catch {
+    // Fallback for http/non-secure contexts
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    showToast("Item ID copied!");
+  }
+}
+
+// ─── Cache status bar ─────────────────────────────────────────────────────────
+
+function updateCacheStatus() {
+  const ageMs = getCacheAge();
+  const ageText = document.getElementById("cache-age-text");
+  const refreshBtn = document.getElementById("refresh-all-btn");
+
+  if (ageMs === null) {
+    ageText.textContent = "";
+    refreshBtn.classList.add("hidden");
+    return;
+  }
+
+  const mins = Math.floor(ageMs / 60000);
+  const hrs = Math.floor(mins / 60);
+  const label = hrs > 0 ? `${hrs}h ago` : mins > 0 ? `${mins}m ago` : "just now";
+
+  ageText.textContent = `Last updated: ${label}`;
+  refreshBtn.classList.remove("hidden");
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function renderSidebar() {
+  const nav = document.getElementById("category-nav");
+
+  // Update "All" count
+  document.getElementById("count-all").textContent =
+    assetsConfig.items.length;
+
+  // Remove old category buttons (keep "All")
+  const existing = nav.querySelectorAll("[data-category]:not([data-category='all'])");
+  existing.forEach((el) => el.remove());
+
+  assetsConfig.categories.forEach((cat) => {
+    const count = assetsConfig.items.filter((i) => i.categories.includes(cat.id)).length;
+    const isActive = state.selectedCategory === cat.id;
+    const btn = document.createElement("button");
+    btn.dataset.category = cat.id;
+    btn.className = `category-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+      isActive
+        ? "bg-blue-50 text-blue-700"
+        : "text-gray-600 hover:bg-gray-100"
+    }`;
+    btn.innerHTML = `
+      <span>${cat.icon}</span>
+      <span class="truncate">${cat.label}</span>
+      <span class="ml-auto text-xs font-normal ${isActive ? "text-blue-500" : "text-gray-400"}">${count}</span>
+    `;
+    nav.appendChild(btn);
+  });
+
+  // Update active state on "All" button
+  const allBtn = nav.querySelector("[data-category='all']");
+  const allActive = state.selectedCategory === "all";
+  allBtn.className = `category-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+    allActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100"
+  }`;
+  allBtn.querySelector("span:last-child").className = `ml-auto text-xs font-normal ${allActive ? "text-blue-500" : "text-gray-400"}`;
+}
+
+// ─── Card rendering ───────────────────────────────────────────────────────────
+
+function renderCard(item) {
+  const meta = state.metadata[item.id];
+  const isLoading = state.loading.has(item.id);
+  const isError = meta instanceof Error;
+  const isHardcoded = !!item.hardcoded;
+  const isExternal = isHardcoded && item.hardcoded.type === "External";
+
+  const title = isHardcoded
+    ? item.hardcoded.title
+    : isError ? item.id : (meta?.title ?? "");
+
+  const snippet = isHardcoded
+    ? item.hardcoded.snippet
+    : isError ? "" : (meta?.snippet ?? "");
+
+  const type = isHardcoded
+    ? item.hardcoded.type
+    : isError ? "" : (meta?.type ?? "");
+
+  const thumbnailUrl = isHardcoded
+    ? item.hardcoded.thumbnailUrl
+    : isError ? "" : (meta?.thumbnailUrl ?? "");
+
+  const card = document.createElement("div");
+  card.dataset.itemId = item.id;
+  card.className =
+    "group relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col";
+
+  // Thumbnail area
+  const thumbSection = document.createElement("div");
+  thumbSection.className = "relative bg-gray-100 aspect-video flex items-center justify-center overflow-hidden";
+
+  if (isLoading) {
+    thumbSection.innerHTML = `
+      <div class="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+    `;
+  } else if (thumbnailUrl) {
+    thumbSection.innerHTML = `
+      <img
+        src="${thumbnailUrl}"
+        alt="${title}"
+        class="w-full h-full object-cover"
+        loading="lazy"
+        onerror="this.parentElement.innerHTML='<div class=\\'text-gray-400 text-xs text-center p-2\\'>No preview</div>'"
+      />
+    `;
+  } else {
+    thumbSection.innerHTML = `
+      <div class="text-gray-300 text-xs text-center px-3">${isExternal ? "🔗" : "No thumbnail"}</div>
+    `;
+  }
+
+  // Refresh icon (appears on hover, not shown for hardcoded/external items)
+  if (!isHardcoded) {
+    const refreshBtn = document.createElement("button");
+    refreshBtn.className =
+      "absolute top-1.5 right-1.5 p-1 rounded bg-white/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-gray-900 z-10";
+    refreshBtn.title = "Refresh item";
+    refreshBtn.innerHTML = `
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    `;
+    refreshBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      refreshItem(item.id);
+    });
+    thumbSection.appendChild(refreshBtn);
+  }
+
+  card.appendChild(thumbSection);
+
+  // Body
+  const body = document.createElement("div");
+  body.className = "flex flex-col gap-1 p-3 flex-1";
+
+  // Title row with type badge
+  body.innerHTML = `
+    <div class="flex items-start gap-1.5 justify-between">
+      <span class="text-sm font-medium text-gray-900 leading-tight line-clamp-2 flex-1">${title || "Loading…"}</span>
+    </div>
+    ${type ? `<div class="mt-0.5">${typeBadge(type)}</div>` : ""}
+    ${snippet ? `<p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mt-0.5">${snippet}</p>` : ""}
+    ${isError ? `<p class="text-xs text-red-500 flex items-center gap-1 mt-1">
+      <svg class="w-3 h-3 flex-none" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      Unable to load
+    </p>` : ""}
+  `;
+
+  // Action bar
+  const actions = document.createElement("div");
+  actions.className =
+    "flex items-center gap-1 mt-2 pt-2 border-t border-gray-100";
+
+  if (isExternal) {
+    actions.innerHTML = `
+      <a href="${item.hardcoded.externalUrl}" target="_blank" rel="noopener"
+        class="flex-1 flex items-center justify-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+        title="Open collection"
+        onclick="event.stopPropagation()">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        Open
+      </a>
+    `;
+  } else if (!isLoading && !isError) {
+    const itemId = item.id;
+    actions.innerHTML = `
+      <button data-action="copy" data-id="${itemId}"
+        class="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+        title="Copy item ID">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        ID
+      </button>
+      <a href="${getItemPageUrl(itemId)}" target="_blank" rel="noopener"
+        class="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+        title="Open item page"
+        onclick="event.stopPropagation()">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        Page
+      </a>
+      <button data-action="preview" data-id="${itemId}"
+        class="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition-colors ml-auto"
+        title="Preview in Map Viewer">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.868V15.13a1 1 0 01-1.447.899L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        Preview
+      </button>
+    `;
+  }
+
+  body.appendChild(actions);
+  card.appendChild(body);
+
+  // Click card body → detail modal
+  if (!isLoading && !isError) {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-action]") || e.target.closest("a")) return;
+      openDetailModal(item.id);
+    });
+  }
+
+  // Delegate action buttons
+  actions.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    e.stopPropagation();
+    if (btn.dataset.action === "copy") copyToClipboard(btn.dataset.id);
+    if (btn.dataset.action === "preview") openPreview(btn.dataset.id);
+  });
+
+  return card;
+}
+
+// ─── Grid rendering ───────────────────────────────────────────────────────────
+
+function countItemsAcrossAllCategories() {
+  const saved = state.selectedCategory;
+  state.selectedCategory = "all";
+  const count = getVisibleItems().length;
+  state.selectedCategory = saved;
+  return count;
+}
+
+function renderGrid() {
+  const grid = document.getElementById("card-grid");
+  const empty = document.getElementById("empty-state");
+  const visible = getVisibleItems();
+
+  grid.innerHTML = "";
+
+  if (visible.length > 0) {
+    empty.classList.add("hidden");
+    empty.classList.remove("flex");
+    visible.forEach((item) => grid.appendChild(renderCard(item)));
+    return;
+  }
+
+  empty.classList.remove("hidden");
+  empty.classList.add("flex");
+
+  const q = state.searchQuery.trim();
+  const isFiltered = state.selectedCategory !== "all";
+  const hiddenCount = q && isFiltered ? countItemsAcrossAllCategories() : 0;
+
+  if (hiddenCount > 0) {
+    const catLabel =
+      assetsConfig.categories.find((c) => c.id === state.selectedCategory)?.label ??
+      "this category";
+    empty.innerHTML = `
+      <svg class="w-10 h-10 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+      </svg>
+      <p class="text-sm font-medium text-gray-600">No results in <span class="font-semibold">${catLabel}</span></p>
+      <p class="text-xs text-gray-400 mt-1">
+        ${hiddenCount} result${hiddenCount !== 1 ? "s" : ""} found in other categories
+      </p>
+      <button id="show-all-results"
+        class="mt-3 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+        Show all ${hiddenCount} result${hiddenCount !== 1 ? "s" : ""}
+      </button>
+    `;
+    document.getElementById("show-all-results").addEventListener("click", () => {
+      state.selectedCategory = "all";
+      renderSidebar();
+      renderGrid();
+    });
+  } else {
+    empty.innerHTML = `
+      <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p class="text-sm text-gray-400">No assets found</p>
+    `;
+  }
+}
+
+// ─── Detail modal ────────────────────────────────────────────────────────────
+
+function setSection(id, content, show) {
+  const el = document.getElementById(id);
+  el.classList.toggle("hidden", !show);
+  if (content !== null) el.innerHTML = content;
+}
+
+function openDetailModal(itemId) {
+  const item = assetsConfig.items.find((i) => i.id === itemId);
+  if (!item) return;
+
+  const meta = state.metadata[itemId];
+  const isHardcoded = !!item.hardcoded;
+  const isExternal = isHardcoded && item.hardcoded.type === "External";
+
+  const title = isHardcoded ? item.hardcoded.title : (meta?.title ?? "");
+  const snippet = isHardcoded ? item.hardcoded.snippet : (meta?.snippet ?? "");
+  const description = isHardcoded ? "" : (meta?.description ?? "");
+  const type = isHardcoded ? item.hardcoded.type : (meta?.type ?? "");
+  const typeKeywords = isHardcoded ? [] : (meta?.typeKeywords ?? []);
+  const tags = isHardcoded ? [] : (meta?.tags ?? []);
+  const thumbnailUrl = isHardcoded ? item.hardcoded.thumbnailUrl : (meta?.thumbnailUrl ?? "");
+
+  // Title + type badge
+  document.getElementById("detail-title").textContent = title;
+  document.getElementById("detail-type-badge").innerHTML = type ? typeBadge(type) : "";
+
+  // Thumbnail
+  const thumbWrap = document.getElementById("detail-thumb-wrap");
+  const thumbImg = document.getElementById("detail-thumb");
+  if (thumbnailUrl) {
+    thumbImg.src = thumbnailUrl;
+    thumbImg.alt = title;
+    thumbWrap.classList.remove("hidden");
+  } else {
+    thumbWrap.classList.add("hidden");
+  }
+
+  // Snippet
+  const snippetEl = document.getElementById("detail-snippet");
+  snippetEl.textContent = snippet;
+  document.getElementById("detail-snippet-wrap").classList.toggle("hidden", !snippet);
+
+  // Description — ArcGIS returns HTML; strip script tags before rendering
+  const cleanDesc = description.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  setSection("detail-desc", cleanDesc || null, !!cleanDesc);
+  document.getElementById("detail-desc-wrap").classList.toggle("hidden", !cleanDesc);
+
+  // Item ID
+  if (!isExternal) {
+    document.getElementById("detail-id").textContent = itemId;
+    document.getElementById("detail-copy-id").onclick = () => copyToClipboard(itemId);
+    document.getElementById("detail-id-wrap").classList.remove("hidden");
+  } else {
+    document.getElementById("detail-id-wrap").classList.add("hidden");
+  }
+
+  // Tags
+  const tagsHtml = tags.map(
+    (t) => `<span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">${t}</span>`
+  ).join("");
+  setSection("detail-tags", tagsHtml, tags.length > 0);
+  document.getElementById("detail-tags-wrap").classList.toggle("hidden", tags.length === 0);
+
+  // Type keywords (skip generic noise that adds no value)
+  const SKIP_KW = new Set([
+    "Registered", "Hosted Service", "Item", "Requires Subscription",
+    "Requires Credits", "Public", "Shareable", "Configurable",
+  ]);
+  const filteredKw = typeKeywords.filter((k) => !SKIP_KW.has(k));
+  const kwHtml = filteredKw.map(
+    (k) => `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs rounded-full">${k}</span>`
+  ).join("");
+  setSection("detail-kw", kwHtml, filteredKw.length > 0);
+  document.getElementById("detail-kw-wrap").classList.toggle("hidden", filteredKw.length === 0);
+
+  // Footer actions
+  const pageLink = document.getElementById("detail-page-link");
+  const pageLabel = document.getElementById("detail-page-label");
+  const previewBtn = document.getElementById("detail-preview-btn");
+
+  if (isExternal) {
+    pageLink.href = item.hardcoded.externalUrl;
+    pageLabel.textContent = "Open Collection";
+    previewBtn.classList.add("hidden");
+  } else {
+    pageLink.href = getItemPageUrl(itemId);
+    pageLabel.textContent = "Item Page";
+    previewBtn.classList.remove("hidden");
+    previewBtn.onclick = () => {
+      closeDetailModal();
+      openPreview(itemId);
+    };
+  }
+
+  document.getElementById("detail-modal").classList.remove("hidden");
+}
+
+function closeDetailModal() {
+  document.getElementById("detail-modal").classList.add("hidden");
+}
+
+// ─── Preview ──────────────────────────────────────────────────────────────────
+
+function openPreview(itemId) {
+  const meta = state.metadata[itemId];
+  const item = assetsConfig.items.find((i) => i.id === itemId);
+  if (!meta || meta instanceof Error) return;
+
+  const url = getMapViewerUrl(itemId, meta.type);
+
+  // Switch views
+  document.getElementById("grid-view").classList.add("hidden");
+  document.getElementById("preview-view").classList.remove("hidden");
+  document.getElementById("preview-view").classList.add("flex");
+
+  // Title
+  document.getElementById("preview-title").textContent = meta.title;
+
+  // Actions in preview bar
+  const actionsEl = document.getElementById("preview-actions");
+  actionsEl.innerHTML = `
+    <button data-copy-id="${itemId}"
+      class="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+      Copy ID
+    </button>
+    <a href="${getItemPageUrl(itemId)}" target="_blank" rel="noopener"
+      class="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+      Item Page
+    </a>
+    <a href="${url.replace("&embedded=1", "")}" target="_blank" rel="noopener"
+      class="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+      Open in Map Viewer
+    </a>
+  `;
+
+  actionsEl.querySelector("[data-copy-id]").addEventListener("click", (e) => {
+    copyToClipboard(e.currentTarget.dataset.copyId);
+  });
+
+  // Load iframe
+  document.getElementById("preview-iframe").src = url;
+}
+
+function closePreview() {
+  document.getElementById("preview-view").classList.add("hidden");
+  document.getElementById("preview-view").classList.remove("flex");
+  document.getElementById("grid-view").classList.remove("hidden");
+  document.getElementById("preview-iframe").src = "";
+}
+
+// ─── Refresh ──────────────────────────────────────────────────────────────────
+
+async function refreshItem(itemId) {
+  state.loading.add(itemId);
+  renderGrid();
+
+  try {
+    const meta = await fetchItemMetadata(itemId, { force: true });
+    state.metadata[itemId] = meta;
+  } catch (err) {
+    state.metadata[itemId] = err;
+  } finally {
+    state.loading.delete(itemId);
+    renderGrid();
+    updateCacheStatus();
+  }
+}
+
+async function refreshAll() {
+  const apiItemIds = assetsConfig.items
+    .filter((i) => !i.hardcoded)
+    .map((i) => i.id);
+
+  apiItemIds.forEach((id) => state.loading.add(id));
+  renderGrid();
+
+  const results = await fetchAllMetadata(apiItemIds, { force: true }, (done, total) => {
+    // Update cache status as items come in
+    if (done === total) updateCacheStatus();
+  });
+
+  Object.assign(state.metadata, results);
+  apiItemIds.forEach((id) => state.loading.delete(id));
+  renderGrid();
+  updateCacheStatus();
+}
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+async function init() {
+  // Build sidebar
+  renderSidebar();
+
+  // Sidebar click events
+  document.getElementById("category-nav").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-category]");
+    if (!btn) return;
+    closePreview();
+    state.selectedCategory = btn.dataset.category;
+    renderSidebar();
+    renderGrid();
+  });
+
+  // Search
+  document.getElementById("search-input").addEventListener("input", (e) => {
+    state.searchQuery = e.target.value;
+    if (state.searchQuery) {
+      // When searching, switch to "all" to search across categories
+      state.selectedCategory = "all";
+      renderSidebar();
+    }
+    renderGrid();
+  });
+
+  // Refresh all button
+  document.getElementById("refresh-all-btn").addEventListener("click", refreshAll);
+
+  // Back from preview
+  document.getElementById("back-btn").addEventListener("click", closePreview);
+
+  // Detail modal close
+  document.getElementById("detail-close").addEventListener("click", closeDetailModal);
+  document.getElementById("detail-backdrop").addEventListener("click", closeDetailModal);
+
+  // Escape closes modal or preview
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!document.getElementById("detail-modal").classList.contains("hidden")) {
+        closeDetailModal();
+      } else {
+        closePreview();
+      }
+    }
+  });
+
+  // Initial render (show loading state)
+  const apiItemIds = assetsConfig.items
+    .filter((i) => !i.hardcoded)
+    .map((i) => i.id);
+
+  apiItemIds.forEach((id) => state.loading.add(id));
+  renderGrid();
+
+  // Fetch all metadata (cached where available)
+  const results = await fetchAllMetadata(apiItemIds, { force: false });
+  Object.assign(state.metadata, results);
+  apiItemIds.forEach((id) => state.loading.delete(id));
+
+  renderGrid();
+  updateCacheStatus();
+}
+
+init();
