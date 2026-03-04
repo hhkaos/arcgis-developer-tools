@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basemap Effects Code Explorer | ArcGIS Maps SDK for JavaScript</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      height: 100%;
+    }
+    #view-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    arcgis-map,
+    arcgis-scene {
+      position: absolute;
+      inset: 0;
+      display: block;
+      visibility: hidden;
+    }
+    .view--active {
+      visibility: visible;
+    }
+    #view-toggle{
+      margin-right: 1rem;
+    }
+    #scene-limitations-notice {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      max-width: 480px;
+      width: calc(100% - 2rem);
+    }
+    #nav-search {
+      width: clamp(300px, 40vw, 640px);
+    }
+    .view-links {
+      display: flex;
+      gap: 0.25rem;
+      --calcite-button-text-color: white;
+      --calcite-button-border-color: white;
+    }
+  </style>
+</head>
+<body class="calcite-mode-dark">
+  <calcite-shell>
+    <calcite-navigation slot="header">
+      <calcite-navigation-logo
+      slot="logo"
+      heading="Basemap Effects Code Explorer"
+      description="ArcGIS Maps SDK for JavaScript"
+      >
+    </calcite-navigation-logo>
+    <arcgis-search id="nav-search" slot="content-center" reference-element="mapView"></arcgis-search>
+    <calcite-segmented-control id="view-toggle" scale="m" slot="content-end">
+      <calcite-segmented-control-item value="2d" checked>2D</calcite-segmented-control-item>
+      <calcite-segmented-control-item value="3d">3D</calcite-segmented-control-item>
+    </calcite-segmented-control>
+  </calcite-navigation>
+  
+  <calcite-shell-panel slot="panel-start" id="shell-panel-start">
+    <calcite-panel id="gallery-panel" heading="Gallery">
+      <div id="gallery-container">
+        <div id="load-by-id">
+          <calcite-input-text id="webmap-id-input" placeholder="Paste item ID or ArcGIS Online URL" clearable></calcite-input-text>
+          <calcite-button id="load-by-id-btn" scale="m" icon-start="layer-basemap">Load</calcite-button>
+        </div>
+        <calcite-notice id="load-notice" kind="danger" closable>
+          <div slot="message" id="load-notice-message"></div>
+        </calcite-notice>
+      </div>
+    </calcite-panel>
+  </calcite-shell-panel>
+  
+  <div id="view-container">
+    <arcgis-map id="mapView" class="view--active">
+      <div slot="top-right" class="view-links">
+        <calcite-button id="default-extent-btn-2d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
+        <calcite-button id="show-code-btn-2d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
+        <calcite-button id="map-viewer-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
+        <calcite-button id="item-details-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
+      </div>
+    </arcgis-map>
+    <arcgis-scene id="sceneView" ground="world-elevation">
+      <div slot="top-right" class="view-links">
+        <calcite-button id="default-extent-btn-3d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
+        <calcite-button id="show-code-btn-3d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
+        <calcite-button id="map-viewer-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
+        <calcite-button id="item-details-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
+      </div>
+    </arcgis-scene>
+    <calcite-notice id="scene-limitations-notice" kind="warning" closable>
+      <span slot="title">Some visual properties are not fully supported in 3D</span>
+      <div slot="message" id="scene-limitations-message"></div>
+      <calcite-link slot="link" id="scene-limitations-learn-more" href="#">Learn more about 3D rendering limitations</calcite-link>
+    </calcite-notice>
+  </div>
+</calcite-shell>
+<calcite-dialog id="scene-limitations-modal" heading="Visual Effects in 3D — ArcGIS Maps SDK 5.0" modal scale="m">
+  <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+    <p style="color: var(--calcite-color-text-2);">
+      SceneView (3D) uses a physically-based rendering pipeline optimized for depth, lighting,
+      and realistic geometry. This is fundamentally different from MapView (2D), which is
+      post-processing friendly and optimized for cartographic styling.
+    </p>
+
+    <calcite-notice kind="danger" open>
+      <span slot="title">Not supported in 3D</span>
+      <div slot="message">
+        <p><strong>Layer effects (<code>layer.effect</code>):</strong> CSS-like filters — bloom, blur, brightness, contrast, drop-shadow, grayscale, hue-rotate, invert, saturate, sepia — are silently ignored by SceneView on all layer types.</p>
+        <p style="margin-top: 0.5rem;"><strong>FeatureEffect:</strong> Applying include/exclude effects to features is not supported in SceneView.</p>
+        <p style="margin-top: 0.5rem;"><strong>Note:</strong> <code>layer.effect</code> is also unsupported in 2D for layers using a heatmap renderer or feature reduction clustering.</p>
+      </div>
+    </calcite-notice>
+
+    <calcite-notice kind="warning" open>
+      <span slot="title">Partially supported in 3D</span>
+      <div slot="message">
+        <p><strong>Blend modes (<code>layer.blendMode</code>):</strong> Supported for tile-based layers — TileLayer, VectorTileLayer, ImageryTileLayer, WebTileLayer, WMTSLayer, WCSLayer, OpenStreetMapLayer, and GroupLayer (when sublayers support it). Not supported for other layer types such as FeatureLayer or GraphicsLayer.</p>
+        <p style="margin-top: 0.5rem;">Even on supported layer types, visual outcomes may vary depending on terrain, lighting, and camera angle.</p>
+      </div>
+    </calcite-notice>
+
+    <calcite-notice kind="info" open>
+      <span slot="title">Supported in 3D — with differences</span>
+      <div slot="message">
+        <p><strong>Opacity (<code>layer.opacity</code>):</strong> Supported in both 2D and 3D, but 3D uses Order Independent Transparency (OIT). The same opacity value will not produce identical visual results compared to 2D layer stacking, because OIT accounts for depth, occlusion, and lighting.</p>
+      </div>
+    </calcite-notice>
+  </div>
+  <calcite-button slot="footer" id="scene-limitations-modal-close">Close</calcite-button>
+</calcite-dialog>
+<calcite-dialog id="code-modal" heading="Code" modal scale="l">
+  <div id="code-modal-content">
+    <pre><code id="code-output" class="language-javascript"></code></pre>
+  </div>
+  <div slot="footer" id="code-modal-actions">
+    <calcite-button id="copy-btn" appearance="outline-fill" icon-start="copy">Copy</calcite-button>
+    <calcite-button id="code-modal-close" appearance="outline">Close</calcite-button>
+  </div>
+</calcite-dialog>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "basemap-effects-code-explorer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@arcgis/core": "^5.0.6",
+    "@arcgis/map-components": "^5.0.6",
+    "@esri/calcite-components": "^5.0.2",
+    "highlight.js": "^11.11.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.2",
+    "vite": "^7.3.1"
+  }
+}

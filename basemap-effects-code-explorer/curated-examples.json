@@ -1,0 +1,177 @@
+[
+  {
+    "id": "bluish-human-geography",
+    "title": "Bluish human geography",
+    "description": "",
+    "primaryBasemap": "Human Geography",
+    "webmapId": "1c1d98629d8049d6a9c2b4d4cf9a47fc"
+  },
+  {
+    "id": "street-night-hillshade",
+    "title": "Reddish Street night",
+    "description": "",
+    "primaryBasemap": "Street Night",
+    "webmapId": "27bf338a675849d3b3d7245912d14833"
+  },
+  {
+    "id": "deep-blue",
+    "title": "Deep Blue",
+    "description": "",
+    "primaryBasemap": "World Imagery (Firefly)",
+    "webmapId": "8054e038927a48419ee0dddb86006ad6"
+  },
+  {
+    "id": "khaki-map",
+    "title": "Khaki basemap",
+    "description": "",
+    "primaryBasemap": "Human Geography Base Khaki",
+    "webmapId": "e95b7333bcd14ee395c29a7554cf75bc"
+  },
+  {
+    "id": "light-gray-texture-colorized",
+    "title": "Textured light gray",
+    "description": "",
+    "primaryBasemap": "Light Gray",
+    "webmapId": "59538953c4194b0a9c8bb92f8f9d93bc"
+  },
+  {
+    "id": "cool-grand-canyon",
+    "title": "Shaded imagery",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "86f716b9e327447e96ab9dcac99db5f5"
+  },
+  {
+    "id": "outdoors-saturation-hillshade",
+    "title": "Customized outdoors",
+    "description": "",
+    "primaryBasemap": "Outdoors",
+    "webmapId": "dfb4cbc8ebd648c1a1ef90b93bbb4396"
+  },
+  {
+    "id": "satellite-basemap-saturation",
+    "title": "Saturated imagery",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "e151ff045c3c46e4a1d5fa707130fe61"
+  },
+  {
+    "id": "osm-with-shadows",
+    "title": "Open with shadows",
+    "description": "",
+    "primaryBasemap": "Open with relief",
+    "webmapId": "0f124d5130024a6a955514048a7bd271"
+  },
+  {
+    "id": "georgian-basemap",
+    "title": "Georgian Basemap",
+    "description": "",
+    "primaryBasemap": "Human Geography Base",
+    "webmapId": "83ebb96f9f99446085888bb5341c5afd"
+  },
+  {
+    "id": "vintage-shaded-relief",
+    "title": "Vintage Shaded Relief Map",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "ccbfec91e19d4f9fb0769af361c31516"
+  },
+  {
+    "id": "porcelain-basemap",
+    "title": "Porcelain Basemap",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "bc0a52b9b5e04b4e91bd42ca9a645917"
+  },
+  {
+    "id": "inferno-basemap",
+    "title": "Inferno Basemap",
+    "description": "",
+    "primaryBasemap": "Human Geography Halloween Base",
+    "webmapId": "ffc0267907224943840e381555fa580b"
+  },
+  {
+    "id": "corporate-basemap",
+    "title": "Corporate Basemap",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "50268f0ea8a14f6281cc474423a908e6"
+  },
+  {
+    "id": "imagery-ready-for-data",
+    "title": "Imagery Ready for Data",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "5afee6f1df0e4c9a8644ef3e5277ac67"
+  },
+  {
+    "id": "painterly-basemap",
+    "title": "Painterly Basemap",
+    "description": "",
+    "primaryBasemap": "Land",
+    "webmapId": "ef3390ff9c1048f0be72b197acd044d3"
+  },
+  {
+    "id": "firefly-with-labels",
+    "title": "Firefly Basemap With Labels",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "43ba24f2666c4fa3a3ec2079656d40e7"
+  },
+  {
+    "id": "imagery-earth-at-night",
+    "title": "Imagery plus Earth at Night",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "43d74eaeeb294d5d836b3edae35779f4"
+  },
+  {
+    "id": "vibrant-basemap",
+    "title": "Vibrant Basemap",
+    "description": "",
+    "primaryBasemap": "World Imagery",
+    "webmapId": "d27a3805595e4bb598678f2dc3b1fca3"
+  },
+  {
+    "id": "dark-magic",
+    "title": "Dark Magic",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "5af96e50fee2454781818267a51e955f"
+  },
+  {
+    "id": "feature-emphasis-glow",
+    "title": "Feature Emphasis Glow",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "0e30388743854225a1144dd6a34a1f04"
+  },
+  {
+    "id": "adventure-map",
+    "title": "Adventure Map",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "ed4f2b3b5f0e469cabf5283978e241dd"
+  },
+  {
+    "id": "inner-ribbon",
+    "title": "Inner ribbon",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "df5ac39fcfde46bf90653d7aea897bea"
+  },
+  {
+    "id": "marks-and-shadow",
+    "title": "Marks and shadow",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "76b935eeaef44c59b2b2267fa18d7987"
+  },
+  {
+    "id": "places-with-shadows",
+    "title": "Places with shadows",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "0559734c8fd34772aabf34b95ae1e5ee"
+  }
+]
