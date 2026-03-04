@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArcGIS Vector Style Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="header-brand">
+      <svg class="brand-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 4L28 10V22L16 28L4 22V10L16 4Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.8)" stroke-width="1.5"/>
+        <path d="M16 4V28M4 10L28 10M4 22L28 22" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+        <circle cx="16" cy="16" r="3.5" fill="white"/>
+      </svg>
+      <div>
+        <div class="brand-title">Vector Style Editor</div>
+        <div class="brand-sub">ArcGIS Developer Tools</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <input
+        type="text"
+        id="itemId"
+        class="item-input"
+        placeholder="Enter ArcGIS Item ID…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="loadBtn" class="btn btn-white">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <polyline points="4,14 4,8 12,8 12,14"/>
+          <polyline points="2,8 8,2 14,8"/>
+        </svg>
+        Load Style
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ STATUS BAR ═══ -->
+  <div id="statusMsg" class="status-msg hidden"></div>
+
+  <!-- ═══ LOADING ═══ -->
+  <div id="loadingState" class="loading-state hidden">
+    <div class="spinner"></div>
+    <span>Fetching style from ArcGIS…</span>
+  </div>
+
+  <!-- ═══ EMPTY STATE ═══ -->
+  <div id="emptyState" class="empty-state">
+    <svg class="empty-icon" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="10" width="60" height="60" rx="6" fill="#E8F3F9" stroke="#0079C1" stroke-width="2"/>
+      <path d="M24 40h32M24 30h20M24 50h26" stroke="#0079C1" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="58" cy="22" r="10" fill="#0079C1"/>
+      <path d="M58 17v5l3.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h2>Enter an ArcGIS Item ID</h2>
+    <p>Load a vector tile style to inspect sources, layers, and add custom sources.</p>
+    <div class="empty-example">
+      <span class="example-label">Try an example:</span>
+      <code id="exampleId" class="example-code">31450c9abff04ed59866582da3f73fdc</code>
+      <button id="useExample" class="btn-link">Use this →</button>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN LAYOUT ═══ -->
+  <div id="mainLayout" class="main-layout hidden">
+
+    <!-- LEFT PANEL -->
+    <aside class="left-panel">
+
+      <!-- Style meta -->
+      <div class="style-meta" id="styleMeta"></div>
+
+      <!-- Sources -->
+      <section class="panel-section">
+        <div class="section-header">
+          <h2 class="section-title">Sources</h2>
+          <button id="addSourceBtn" class="btn btn-sm btn-outline">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10">
+              <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+            </svg>
+            Add
+          </button>
+        </div>
+        <div id="sourcesList" class="sources-list"></div>
+      </section>
+
+      <!-- Layers -->
+      <section class="panel-section layers-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            Layers
+            <span class="count-badge" id="layerCount"></span>
+          </h2>
+          <span class="drag-hint">drag to reorder</span>
+        </div>
+        <div class="search-wrap">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="search-icon">
+            <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+          </svg>
+          <input type="text" id="layerSearch" class="search-input" placeholder="Filter layers…" />
+        </div>
+        <div id="layersList" class="layers-list"></div>
+      </section>
+
+    </aside>
+
+    <!-- RIGHT AREA -->
+    <div class="right-area">
+
+      <!-- Map panel -->
+      <div class="map-panel">
+        <div class="panel-toolbar">
+          <h2 class="section-title">Map Preview</h2>
+          <div class="toolbar-right">
+            <span class="map-hint" id="mapHint">Click Preview to render the style</span>
+            <button id="previewBtn" class="btn btn-sm btn-primary">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polygon points="3,1 13,7 3,13" fill="currentColor" stroke="none"/>
+              </svg>
+              Preview
+            </button>
+          </div>
+        </div>
+        <div id="map" class="map-container"></div>
+      </div>
+
+      <!-- JSON panel -->
+      <div class="json-panel">
+        <div class="panel-toolbar">
+          <h2 class="section-title">Modified Style JSON</h2>
+          <div class="toolbar-right">
+            <button id="copyBtn" class="btn btn-sm btn-ghost">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <rect x="5" y="5" width="9" height="9" rx="1.5"/>
+                <path d="M11 5V3a1 1 0 00-1-1H3a1 1 0 00-1 1v7a1 1 0 001 1h2"/>
+              </svg>
+              Copy
+            </button>
+            <button id="downloadBtn" class="btn btn-sm btn-ghost">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <path d="M8 2v8M5 8l3 3 3-3"/><line x1="2" y1="14" x2="14" y2="14"/>
+              </svg>
+              Download
+            </button>
+          </div>
+        </div>
+        <div class="json-output-wrap">
+          <pre id="jsonOutput" class="json-output"></pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ ADD SOURCE MODAL ═══ -->
+  <div id="sourceModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-dialog">
+
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Custom Source</h2>
+        <button class="modal-close" id="closeModalBtn" aria-label="Close">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+            <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- ─ Source configuration ─ -->
+        <div class="form-section">
+          <div class="form-section-title">Source Configuration</div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="srcId">Source ID <span class="req">*</span></label>
+              <input type="text" id="srcId" class="form-input" placeholder="my-custom-source" autocomplete="off" />
+              <div class="field-error hidden" id="srcIdError"></div>
+            </div>
+            <div class="form-group">
+              <label for="srcType">Source Type <span class="req">*</span></label>
+              <select id="srcType" class="form-select">
+                <option value="vector">Vector Tiles (PBF/MVT)</option>
+                <option value="raster">Raster Tiles (XYZ/WMTS/ArcGIS)</option>
+                <option value="raster-dem">Raster DEM (Terrain/Hillshade)</option>
+                <option value="geojson">GeoJSON</option>
+                <option value="image">Image (Georeferenced)</option>
+                <option value="video">Video (Georeferenced)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="srcTypeFields"></div>
+        </div>
+
+        <!-- ─ Layer section ─ -->
+        <div class="form-section">
+          <label class="toggle-row">
+            <div class="toggle-switch">
+              <input type="checkbox" id="addLayerToggle" />
+              <span class="toggle-track"></span>
+            </div>
+            <span class="toggle-label-text">Add a rendering layer for this source</span>
+          </label>
+          <div id="layerFormSection" class="hidden">
+            <div id="layerTypeFields"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancelModalBtn" class="btn btn-outline">Cancel</button>
+        <button id="saveSourceBtn" class="btn btn-primary">Add Source</button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- .app -->
+
+<script src="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
