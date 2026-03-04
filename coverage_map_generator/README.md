@@ -1,6 +1,6 @@
 # Coverage Map Generator
 
-![Coverage Map Generator preview](./preview.png)
+[![Coverage Map Generator preview](./preview.png)](https://hhkaos.github.io/arcgis-developer-tools/coverage_map_generator/)
 
 Coverage Map Generator is a static ArcGIS utility for generating coverage maps from public layers, private layers, or uploaded GeoJSON, then reviewing, dissolving, and downloading the resulting outputs.
 

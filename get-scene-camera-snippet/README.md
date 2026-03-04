@@ -1,6 +1,6 @@
 # Get Scene Camera Snippet
 
-![Get Scene Camera Snippet preview](./preview.png)
+[![Get Scene Camera Snippet preview](./preview.png)](https://hhkaos.github.io/arcgis-developer-tools/get-scene-camera-snippet/)
 
 Get Scene Camera Snippet is a scene helper that watches the current 3D camera and continuously generates a copyable `<arcgis-scene>` snippet with the live camera position, tilt, and heading.
 

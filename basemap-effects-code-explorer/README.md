@@ -1,6 +1,6 @@
 # Basemap Effects Code Explorer
 
-![Basemap Effects Code Explorer preview](./preview.png)
+[![Basemap Effects Code Explorer preview](./preview.png)](https://hhkaos.github.io/arcgis-developer-tools/basemap-effects-code-explorer/)
 
 Basemap Effects Code Explorer is an ArcGIS playground for testing basemap visual effects in 2D and 3D, loading maps by item ID, comparing rendering support, and generating code for the active configuration.
 

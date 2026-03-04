@@ -1,6 +1,6 @@
 # WebMap Multiview Explorer
 
-![WebMap Multiview Explorer preview](./preview.png)
+[![WebMap Multiview Explorer preview](./preview.png)](https://hhkaos.github.io/arcgis-developer-tools/webmap-multiview-explorer/)
 
 WebMap Multiview Explorer loads a WebMap by item ID and shows one main view plus synchronized comparison views at multiple zoom levels.
 

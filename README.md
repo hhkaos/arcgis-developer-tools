@@ -30,7 +30,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### ArcGIS Vector Style Custom Source
 
-![ArcGIS Vector Style Custom Source preview](./arcgis-vector-style-custom-source/preview.png)
+[![ArcGIS Vector Style Custom Source preview](./arcgis-vector-style-custom-source/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/arcgis-vector-style-custom-source/)
 
 - Live: [arcgis-vector-style-custom-source](https://hhkaos.github.io/arcgis-developer-tools/arcgis-vector-style-custom-source/)
 - Source: [arcgis-vector-style-custom-source](./arcgis-vector-style-custom-source/)
@@ -38,7 +38,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Basemap Effects Code Explorer
 
-![Basemap Effects Code Explorer preview](./basemap-effects-code-explorer/preview.png)
+[![Basemap Effects Code Explorer preview](./basemap-effects-code-explorer/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/basemap-effects-code-explorer/)
 
 - Live: [basemap-effects-code-explorer](https://hhkaos.github.io/arcgis-developer-tools/basemap-effects-code-explorer/)
 - Source: [basemap-effects-code-explorer](./basemap-effects-code-explorer/)
@@ -46,7 +46,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Blend Modes Explorer
 
-![Blend Modes Explorer preview](./blend-modes-explorer/preview.png)
+[![Blend Modes Explorer preview](./blend-modes-explorer/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/blend-modes-explorer/)
 
 - Live: [blend-modes-explorer](https://hhkaos.github.io/arcgis-developer-tools/blend-modes-explorer/)
 - Source: [blend-modes-explorer](./blend-modes-explorer/)
@@ -54,7 +54,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Layer Palette
 
-![Layer Palette preview](./layer-palette/preview.png)
+[![Layer Palette preview](./layer-palette/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/layer-palette/)
 
 - Live: [layer-palette](https://hhkaos.github.io/arcgis-developer-tools/layer-palette/)
 - Source: [layer-palette](./layer-palette/)
@@ -64,7 +64,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Coverage Map Generator
 
-![Coverage Map Generator preview](./coverage_map_generator/preview.png)
+[![Coverage Map Generator preview](./coverage_map_generator/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/coverage_map_generator/)
 
 - Live: [coverage_map_generator](https://hhkaos.github.io/arcgis-developer-tools/coverage_map_generator/)
 - Source: [coverage_map_generator](./coverage_map_generator/)
@@ -72,7 +72,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### WebMap Multiview Explorer
 
-![WebMap Multiview Explorer preview](./webmap-multiview-explorer/preview.png)
+[![WebMap Multiview Explorer preview](./webmap-multiview-explorer/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/webmap-multiview-explorer/)
 
 - Live: [webmap-multiview-explorer](https://hhkaos.github.io/arcgis-developer-tools/webmap-multiview-explorer/)
 - Source: [webmap-multiview-explorer](./webmap-multiview-explorer/)
@@ -82,7 +82,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Get Scene Camera Snippet
 
-![Get Scene Camera Snippet preview](./get-scene-camera-snippet/preview.png)
+[![Get Scene Camera Snippet preview](./get-scene-camera-snippet/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/get-scene-camera-snippet/)
 
 - Live: [get-scene-camera-snippet](https://hhkaos.github.io/arcgis-developer-tools/get-scene-camera-snippet/)
 - Source: [get-scene-camera-snippet](./get-scene-camera-snippet/)
@@ -90,7 +90,7 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### glTF Placement
 
-![glTF Placement preview](./gltf-placement/preview.png)
+[![glTF Placement preview](./gltf-placement/preview.png)](https://hhkaos.github.io/arcgis-developer-tools/gltf-placement/)
 
 - Live: [gltf-placement](https://hhkaos.github.io/arcgis-developer-tools/gltf-placement/)
 - Source: [gltf-placement](./gltf-placement/)

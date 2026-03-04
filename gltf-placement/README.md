@@ -1,6 +1,6 @@
 # glTF Placement
 
-![glTF Placement preview](./preview.png)
+[![glTF Placement preview](./preview.png)](https://hhkaos.github.io/arcgis-developer-tools/gltf-placement/)
 
 glTF Placement is a 3D placement tool for dropping preset or uploaded glTF models into a scene, exporting placement JSON, and creating or applying polygon masks.
 
