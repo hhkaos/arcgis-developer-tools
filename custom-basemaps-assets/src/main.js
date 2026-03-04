@@ -15,6 +15,7 @@ const state = {
 
 const ISSUE_URL = "https://github.com/hhkaos/arcgis-developer-tools/issues";
 const CONTACT_URL = "https://links.rauljimenez.info/";
+const VALID_CATEGORY_IDS = new Set(["all", ...assetsConfig.categories.map((cat) => cat.id)]);
 
 // ─── Derived: items visible given current category + search ──────────────────
 
@@ -88,10 +89,10 @@ function showToast(msg = "Copied!") {
 
 // ─── Copy to clipboard ────────────────────────────────────────────────────────
 
-async function copyToClipboard(text) {
+async function copyToClipboard(text, successMessage = "Item ID copied!") {
   try {
     await navigator.clipboard.writeText(text);
-    showToast("Item ID copied!");
+    showToast(successMessage);
   } catch {
     // Fallback for http/non-secure contexts
     const ta = document.createElement("textarea");
@@ -102,8 +103,62 @@ async function copyToClipboard(text) {
     ta.select();
     document.execCommand("copy");
     ta.remove();
-    showToast("Item ID copied!");
+    showToast(successMessage);
   }
+}
+
+// ─── URL state ────────────────────────────────────────────────────────────────
+
+function buildFilterUrl() {
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+
+  params.delete("q");
+  params.delete("category");
+  params.delete("type");
+
+  const query = state.searchQuery.trim();
+  if (query) params.set("q", query);
+
+  if (state.selectedCategory !== "all") {
+    params.set("category", state.selectedCategory);
+  }
+
+  [...state.selectedTypes]
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((type) => params.append("type", type));
+
+  url.search = params.toString();
+  return url;
+}
+
+function syncUrlState() {
+  const url = buildFilterUrl();
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function restoreStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const searchQuery = params.get("q");
+  const category = params.get("category");
+  const types = params.getAll("type");
+
+  state.searchQuery = searchQuery ?? "";
+
+  if (category && VALID_CATEGORY_IDS.has(category)) {
+    state.selectedCategory = category;
+  }
+
+  state.selectedTypes.clear();
+  types
+    .map((type) => type.trim())
+    .filter(Boolean)
+    .forEach((type) => state.selectedTypes.add(type));
+}
+
+async function copyShareLink() {
+  const shareUrl = buildFilterUrl().toString();
+  await copyToClipboard(shareUrl, "Share link copied!");
 }
 
 // ─── Cache status bar ─────────────────────────────────────────────────────────
@@ -459,11 +514,13 @@ function renderGrid() {
       state.selectedCategory = "all";
       renderSidebar();
       renderGrid();
+      syncUrlState();
     });
     document.getElementById("clear-search").addEventListener("click", () => {
       state.searchQuery = "";
       document.getElementById("search-input").value = "";
       renderGrid();
+      syncUrlState();
     });
   } else {
     empty.innerHTML = `
@@ -695,8 +752,12 @@ async function refreshAll() {
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
 async function init() {
+  restoreStateFromUrl();
+
   // Build sidebar
   renderSidebar();
+
+  document.getElementById("search-input").value = state.searchQuery;
 
   // Sidebar click events
   document.getElementById("category-nav").addEventListener("click", (e) => {
@@ -707,6 +768,7 @@ async function init() {
     state.selectedTypes.clear();
     renderSidebar();
     renderGrid();
+    syncUrlState();
   });
 
   // Type filter chip clicks
@@ -721,6 +783,7 @@ async function init() {
     }
     renderTypeChips();
     renderGrid();
+    syncUrlState();
   });
 
   // Search
@@ -732,7 +795,10 @@ async function init() {
       renderSidebar();
     }
     renderGrid();
+    syncUrlState();
   });
+
+  document.getElementById("share-filters-btn").addEventListener("click", copyShareLink);
 
   // Refresh all button
   document.getElementById("refresh-all-btn").addEventListener("click", refreshAll);
@@ -779,6 +845,7 @@ async function init() {
 
   apiItemIds.forEach((id) => state.loading.add(id));
   renderGrid();
+  syncUrlState();
 
   // Fetch all metadata (cached where available)
   const results = await fetchAllMetadata(apiItemIds, { force: false });
@@ -787,6 +854,7 @@ async function init() {
 
   renderGrid();
   updateCacheStatus();
+  syncUrlState();
 }
 
 init();

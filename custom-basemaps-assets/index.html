@@ -28,14 +28,28 @@
         />
       </div>
 
-      <!-- Cache status -->
-      <div id="cache-status" class="flex-none text-xs text-gray-400 flex items-center gap-2">
-        <span id="cache-age-text"></span>
+      <!-- Header actions -->
+      <div class="flex-none flex items-center gap-3">
         <button
-          id="refresh-all-btn"
-          title="Refresh all items"
-          class="text-gray-400 hover:text-gray-600 transition-colors hidden"
-        >· Refresh all</button>
+          id="share-filters-btn"
+          type="button"
+          title="Copy link with current filters"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C7.886 12.544 7.886 11.251 8.684 10.453l2.829-2.829a2 2 0 012.828 0 2 2 0 010 2.829l-1.414 1.414m2.389-.439c.798.798.798 2.091 0 2.889l-2.828 2.828a2 2 0 01-2.829 0 2 2 0 010-2.828l1.415-1.415"/>
+          </svg>
+          Share filters
+        </button>
+
+        <div id="cache-status" class="text-xs text-gray-400 flex items-center gap-2">
+          <span id="cache-age-text"></span>
+          <button
+            id="refresh-all-btn"
+            title="Refresh all items"
+            class="text-gray-400 hover:text-gray-600 transition-colors hidden"
+          >· Refresh all</button>
+        </div>
       </div>
     </header>
 
