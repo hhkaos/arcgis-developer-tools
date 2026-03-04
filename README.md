@@ -30,11 +30,15 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### ArcGIS Vector Style Custom Source
 
+![ArcGIS Vector Style Custom Source preview](./arcgis-vector-style-custom-source/preview.png)
+
 - Live: [arcgis-vector-style-custom-source](https://hhkaos.github.io/arcgis-developer-tools/arcgis-vector-style-custom-source/)
 - Source: [arcgis-vector-style-custom-source](./arcgis-vector-style-custom-source/)
 - Experimental vector style merge tool for loading ArcGIS vector tile styles, combining sources, inspecting style structure, and rearranging layers outside the official style editor.
 
 #### Basemap Effects Code Explorer
+
+![Basemap Effects Code Explorer preview](./basemap-effects-code-explorer/preview.png)
 
 - Live: [basemap-effects-code-explorer](https://hhkaos.github.io/arcgis-developer-tools/basemap-effects-code-explorer/)
 - Source: [basemap-effects-code-explorer](./basemap-effects-code-explorer/)
@@ -42,11 +46,15 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Blend Modes Explorer
 
+![Blend Modes Explorer preview](./blend-modes-explorer/preview.png)
+
 - Live: [blend-modes-explorer](https://hhkaos.github.io/arcgis-developer-tools/blend-modes-explorer/)
 - Source: [blend-modes-explorer](./blend-modes-explorer/)
 - Playground for understanding ArcGIS layer blend modes, with grouped mode explanations and an interactive map to compare visual outcomes.
 
 #### Layer Palette
+
+![Layer Palette preview](./layer-palette/preview.png)
 
 - Live: [layer-palette](https://hhkaos.github.io/arcgis-developer-tools/layer-palette/)
 - Source: [layer-palette](./layer-palette/)
@@ -56,11 +64,15 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Coverage Map Generator
 
+![Coverage Map Generator preview](./coverage_map_generator/preview.png)
+
 - Live: [coverage_map_generator](https://hhkaos.github.io/arcgis-developer-tools/coverage_map_generator/)
 - Source: [coverage_map_generator](./coverage_map_generator/)
 - Utility for generating coverage maps from public layers, private layers, or uploaded GeoJSON, then reviewing, dissolving, and downloading the resulting outputs.
 
 #### WebMap Multiview Explorer
+
+![WebMap Multiview Explorer preview](./webmap-multiview-explorer/preview.png)
 
 - Live: [webmap-multiview-explorer](https://hhkaos.github.io/arcgis-developer-tools/webmap-multiview-explorer/)
 - Source: [webmap-multiview-explorer](./webmap-multiview-explorer/)
@@ -70,11 +82,15 @@ This repository collects small ArcGIS-focused utilities, experiments, and workfl
 
 #### Get Scene Camera Snippet
 
+![Get Scene Camera Snippet preview](./get-scene-camera-snippet/preview.png)
+
 - Live: [get-scene-camera-snippet](https://hhkaos.github.io/arcgis-developer-tools/get-scene-camera-snippet/)
 - Source: [get-scene-camera-snippet](./get-scene-camera-snippet/)
 - Scene helper that watches the current 3D camera and continuously generates a copyable `<arcgis-scene>` snippet with the live camera position, tilt, and heading.
 
 #### glTF Placement
+
+![glTF Placement preview](./gltf-placement/preview.png)
 
 - Live: [gltf-placement](https://hhkaos.github.io/arcgis-developer-tools/gltf-placement/)
 - Source: [gltf-placement](./gltf-placement/)

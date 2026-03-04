@@ -1,6 +1,8 @@
-# Custom Basemaps Assets
+# Layer Palette
 
-Custom Basemaps Assets is a small ArcGIS developer tool for browsing a curated palette of public ArcGIS layers and item references used to compose custom basemaps. It provides searchable cards, metadata previews, item ID copying, and in-app Map Viewer previews for supported ArcGIS item types.
+![Layer Palette preview](./preview.png)
+
+Layer Palette is a small ArcGIS developer tool for browsing a curated palette of public ArcGIS layers and item references used to compose custom basemaps. It provides searchable cards, metadata previews, item ID copying, and in-app Map Viewer previews for supported ArcGIS item types.
 
 This project is a static frontend built for GitHub Pages and lives inside the `arcgis-developer-tools` workspace.
 
