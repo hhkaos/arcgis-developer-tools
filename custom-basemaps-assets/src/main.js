@@ -401,12 +401,17 @@ function renderCard(item) {
         alt="${title}"
         class="w-full h-full object-cover"
         loading="lazy"
-        onerror="this.parentElement.innerHTML='<div class=\\'text-gray-400 text-xs text-center p-2\\'>No preview</div>'"
+        onerror="this.src='/placeholder-missing.png';this.className='w-full h-full object-cover'"
       />
     `;
   } else {
     thumbSection.innerHTML = `
-      <div class="text-gray-300 text-xs text-center px-3">${isExternal ? "🔗" : "No thumbnail"}</div>
+      <img
+        src="${isExternal ? "/placeholder-external.png" : "/placeholder-missing.png"}"
+        alt="${isExternal ? "External resource" : "No thumbnail"}"
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
     `;
   }
 
@@ -451,7 +456,7 @@ function renderCard(item) {
   // Action bar
   const actions = document.createElement("div");
   actions.className =
-    "flex items-center gap-1 mt-2 pt-2 border-t border-gray-100";
+    "flex items-center gap-1 mt-auto pt-2 border-t border-gray-100";
 
   if (isExternal) {
     actions.innerHTML = `
@@ -521,34 +526,166 @@ function renderCard(item) {
 
 function renderMissingResourceCard({ compact = false } = {}) {
   const card = document.createElement("div");
-  card.className = compact
-    ? "bg-gradient-to-br from-slate-50 to-blue-50 border border-dashed border-blue-200 rounded-xl p-4 flex flex-col justify-between min-h-[12rem]"
-    : "w-full max-w-xl bg-white border border-dashed border-blue-200 rounded-2xl p-5 text-left shadow-sm";
 
-  const titleClass = compact ? "text-sm font-semibold text-gray-900" : "text-base font-semibold text-gray-900";
-  const bodyClass = compact ? "text-xs text-gray-600 leading-relaxed mt-2" : "text-sm text-gray-600 leading-relaxed mt-2";
-  const actionClass = compact
-    ? "inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-    : "inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-colors";
+  if (compact) {
+    // ── Compact (grid card) — matches regular card structure ──────────────────
+    card.className =
+      "group relative bg-white border border-dashed border-blue-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col";
 
-  card.innerHTML = `
-    <div>
-      <p class="${titleClass}">Missing resource?</p>
-      <p class="${bodyClass}">
-        Tell me what you are looking for so I can add it. Open a GitHub issue or use my links page to get in touch.
+    // Thumbnail
+    const thumbSection = document.createElement("div");
+    thumbSection.className = "relative bg-blue-50 aspect-video flex items-center justify-center overflow-hidden";
+    thumbSection.innerHTML = `
+      <img src="/placeholder-missing.png" alt="Missing resource"
+        class="w-full h-full object-cover opacity-80" />
+    `;
+    card.appendChild(thumbSection);
+
+    // Body
+    const body = document.createElement("div");
+    body.className = "flex flex-col gap-1 p-3 flex-1";
+    body.innerHTML = `
+      <span class="text-sm font-medium text-gray-900 leading-tight">Missing resource?</span>
+      <p class="text-xs text-gray-500 leading-relaxed mt-0.5 line-clamp-2">
+        Tell me what you're looking for and I'll add it.
       </p>
-    </div>
-    <div class="mt-4 flex flex-wrap gap-2">
+    `;
+
+    // Actions panel (same pattern as feedback button)
+    const actionsWrapper = document.createElement("div");
+    actionsWrapper.className = "relative mt-auto pt-2";
+
+    const panel = document.createElement("div");
+    panel.className =
+      "hidden absolute bottom-full right-0 mb-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl w-48 z-20";
+    panel.innerHTML = `
       <a href="${ISSUE_URL}" target="_blank" rel="noopener"
-        class="${actionClass} bg-blue-600 text-white hover:bg-blue-700">
-        Open an issue
+        class="flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50">
+        <span class="mt-0.5 text-gray-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16h6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </span>
+        <span class="flex flex-col">
+          <span class="text-sm font-medium text-gray-800">Open an issue</span>
+          <span class="text-xs text-gray-500">GitHub · arcgis-developer-tools</span>
+        </span>
       </a>
       <a href="${CONTACT_URL}" target="_blank" rel="noopener"
-        class="${actionClass} border border-gray-300 text-gray-700 hover:bg-gray-50">
-        Contact Raul
+        class="flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-blue-50">
+        <span class="mt-0.5 text-blue-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+        </span>
+        <span class="flex flex-col">
+          <span class="text-sm font-medium text-gray-800">Contact Raul</span>
+          <span class="text-xs text-gray-500">Links page</span>
+        </span>
       </a>
-    </div>
-  `;
+    `;
+
+    const trigger = document.createElement("button");
+    trigger.className =
+      "ml-auto flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition-colors";
+    trigger.innerHTML = `
+      Suggest
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    `;
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.classList.toggle("hidden");
+    });
+    panel.addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => panel.classList.add("hidden"), { capture: false });
+
+    actionsWrapper.appendChild(panel);
+    actionsWrapper.appendChild(trigger);
+    body.appendChild(actionsWrapper);
+    card.appendChild(body);
+
+  } else {
+    // ── Default (empty state) ─────────────────────────────────────────────────
+    card.className =
+      "w-full max-w-xl bg-white border border-dashed border-blue-200 rounded-2xl overflow-hidden text-left shadow-sm";
+
+    const thumb = document.createElement("div");
+    thumb.className = "relative bg-blue-50 w-full h-32 overflow-hidden";
+    thumb.innerHTML = `
+      <img src="/placeholder-missing.png" alt="Missing resource"
+        class="w-full h-full object-cover opacity-70" />
+    `;
+    card.appendChild(thumb);
+
+    const body = document.createElement("div");
+    body.className = "p-5";
+
+    const actionsWrapper = document.createElement("div");
+    actionsWrapper.className = "relative mt-4";
+
+    const panel = document.createElement("div");
+    panel.className =
+      "hidden absolute bottom-full left-0 mb-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl w-56 z-20";
+    panel.innerHTML = `
+      <a href="${ISSUE_URL}" target="_blank" rel="noopener"
+        class="flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50">
+        <span class="mt-0.5 text-gray-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16h6M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </span>
+        <span class="flex flex-col">
+          <span class="text-sm font-medium text-gray-800">Open an issue</span>
+          <span class="text-xs text-gray-500">GitHub · arcgis-developer-tools</span>
+        </span>
+      </a>
+      <a href="${CONTACT_URL}" target="_blank" rel="noopener"
+        class="flex items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-blue-50">
+        <span class="mt-0.5 text-blue-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+        </span>
+        <span class="flex flex-col">
+          <span class="text-sm font-medium text-gray-800">Contact Raul</span>
+          <span class="text-xs text-gray-500">Links page</span>
+        </span>
+      </a>
+    `;
+
+    const trigger = document.createElement("button");
+    trigger.className =
+      "flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-xl transition-colors";
+    trigger.innerHTML = `
+      Get in touch
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    `;
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.classList.toggle("hidden");
+    });
+    panel.addEventListener("click", (e) => e.stopPropagation());
+    document.addEventListener("click", () => panel.classList.add("hidden"), { capture: false });
+
+    body.innerHTML = `
+      <p class="text-base font-semibold text-gray-900">Missing resource?</p>
+      <p class="text-sm text-gray-600 leading-relaxed mt-2">
+        Tell me what you are looking for so I can add it.
+      </p>
+    `;
+    actionsWrapper.appendChild(panel);
+    actionsWrapper.appendChild(trigger);
+    body.appendChild(actionsWrapper);
+    card.appendChild(body);
+  }
 
   return card;
 }

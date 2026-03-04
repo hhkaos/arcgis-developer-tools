@@ -1,65 +1,148 @@
-Base layers:
-    * [Human Geography Detail](https://www.arcgis.com/home/item.html?id=97fa1365da1e43eabb90d0364326bc2d)
-    * [Human Geography Detail - No Water](https://www.arcgis.com/home/item.html?id=bc23aa518e664fbfa4de9f30fd1ef472)
-    * [Human Geography Dark Detail](https://www.arcgis.com/home/item.html?id=1ddbb25aa29c4811aaadd94de469856a)
-    * [Human Geography Dark Detail - No Water](https://www.arcgis.com/home/item.html?id=92cb9830a1f34398b32f8b52fc1f3312)
-    * [Human Geography Base](https://www.arcgis.com/home/item.html?id=2afe5b807fa74006be6363fd243ffb30)
-    * [Open Basemap Dark Gray Canvas Base](https://www.arcgis.com/home/item.html?id=07a80fa9a4904cc88061c17cc055a173)
-    * [Environment Base](https://www.arcgis.com/home/item.html?id=005b8960ddd04ae781df8d471b6726b3)
-    * [Light Gray Canvas Base](https://www.arcgis.com/home/item.html?id=291da5eab3a0412593b66d384379f89f)
-    * [World Ocean Base](https://www.arcgis.com/home/item.html?id=1e126e7520f9466c9ca28b8f28b5e500)
-    * [Dark Gray Canvas Base](https://www.arcgis.com/home/item.html?id=5e9b3685f4c24d8781073dd928ebda50)
-    * [Blank White Map](https://www.arcgis.com/home/item.html?id=96cff8b8e48d45548833f19e29f09943)
-    * [Blank White Vector Basemap Tiles](https://www.arcgis.com/home/item.html?id=e9cacfd187904614884c16aa52a21cac)
-    * [Blank Black Vector Basemap Tiles](https://www.arcgis.com/home/item.html?id=e3ac9818c0c344538840e51e9f33f6cc)
-    * [Glassy terrain](https://www.arcgis.com/home/item.html?id=7b644af381204ba78fd2f0808294357b)
-    * [GlassyOceanOverlay](https://www.arcgis.com/home/item.html?id=16b160b285e040578c6863ca9b460447)
-    * [Touchable Terrain Basemap](https://www.arcgis.com/home/item.html?id=91591536f18844d597366363c22d54df)
-    * Enhanced Contrast Base 
-    * [Enhanced Contrast Dark Base](https://www.arcgis.com/home/item.html?id=4dd826e83b044acfb519a26fc9b20f80)
-* Reference lables:
-    * [Human Geography Label](https://www.arcgis.com/home/item.html?id=ba52238d338745b1a355407ec9df6768)
-    * [Human Geography Dark Label](https://www.arcgis.com/home/item.html?id=de2b349f60254bf094c9d7b3482e9595)
-    * [Light Gray Canvas Reference](https://www.arcgis.com/home/item.html?id=1768e8369a214dfab4e2167d5c5f2454)
-    * [Enhanced Contrast Dark Reference](https://www.arcgis.com/home/item.html?id=946b41c44c9549758b89f50ce9d8872d)
-    * [Hybrid Reference Layer (Places)](https://www.arcgis.com/home/item.html?id=c23483af71a5455e914719a3f344d1c9)
-    * [Other reference layers](https://livingatlas.arcgis.com/en/browse/?q=Reference#q=Reference&d=2&type=layers)
-* Contours and boundaries: 
-    * [Boundaries](https://livingatlas.arcgis.com/en/browse/#d=2&type=layers&rgnCode=WO&categories=Administrative)
-    * [World Hillshade](https://www.arcgis.com/home/item.html?id=1b243539f4514b6ba35e7d995890db1d)
-    * [World Hillshade (Dark)](https://www.arcgis.com/home/item.html?id=428539ef9cab4017b69d15a40a9ee98b)
-    * [World continents](https://www.arcgis.com/home/item.html?id=57c1ade4fa7c4e2384e6a23f2b3bd254)
-    * [World TimeZones](https://www.arcgis.com/home/item.html?id=1627d2eff2ef4fb0874171b9aa67ee07)
-    * [Generalized Terrain & Bathymetry Hillshade](https://www.arcgis.com/home/item.html?id=252231a95d404c549d69b883ec6a1469)
-    * [Terrain](https://www.arcgis.com/home/item.html?id=58a541efc59545e6b7137f961d7de883)
-    * [Bathymetry Light](https://www.arcgis.com/home/item.html?id=d27834f9df384c56b3099d663071b5c1)
-    * [Bathymetry Dark](https://www.arcgis.com/home/item.html?id=a57be56f4279434b9f400620e70a99f5)
-    * [Global Land Generalized](https://www.arcgis.com/home/item.html?id=f5e12fc33a9a4d509daf2cbc0c8814f2)
-    * [Outline Map](https://www.arcgis.com/home/item.html?id=0f26b79821374a59b306326e7d76c6b5)
-* Decoration:
-    * Textures:
-        * [Parchment Texture](https://www.arcgis.com/home/item.html?id=34b03208322246b08665189c0fffab7b)
-        * [Folded Paper Texture](https://www.arcgis.com/home/item.html?id=b0c7f075d98e4b91b6cd2bdfaf7288af)
-        * [Crinkled Paper Texture](https://www.arcgis.com/home/item.html?id=2b6cee5cda214800b803a8498af867b9)
-        * [Poster Paper Texture](https://www.arcgis.com/home/item.html?id=4a2be37c9cb1416eaaf21d0dbd9532af)
-        * [Watercolor Paper Texture](https://www.arcgis.com/home/item.html?id=e855294d99d9461da13799beab7548cc)
-        * [Slate Texture](https://www.arcgis.com/home/item.html?id=bc2eaab0edbd49e3aad8c0a878f85b7f)
-        * [Water Texture](https://www.arcgis.com/home/item.html?id=df56c5e62ddb40c2ade6ff498c72ee2b)
-    * Grids:
-        * [Firefly Grid Lines v2](https://www.arcgis.com/home/item.html?id=7b19a92d0c984a4da2e06889c2b4ea89)
-        * [Global Hexbins](https://livingatlas.arcgis.com/en/browse/?q=Global%20Hexbins#q=Global+Hexbins&d=2&type=layers&rgnCode=WO)
-* Population and infrastructure
-    * [Esri 3D Buildings](https://www.arcgis.com/home/item.html?id=b8fec5af7dfe4866b1b8ac2d2800f282)
-    * [Open 3D Buildings](https://www.arcgis.com/home/item.html?id=c444b24b184c4523a5dc96248bfea4e1)
-    * [Esri Feature Layers for OSM](https://www.arcgis.com/home/group.html?sortField=title&sortOrder=asc&focus=layers&id=bdf6c800b3ae453b9db239e03d7c1727#content)
-    * [Earth at Night (2016)](https://www.arcgis.com/home/item.html?id=750547cb5375480d9d21750e91426bfc)
-* Utils:
-    * [Blend modes Map](https://www.arcgis.com/home/item.html?id=dd161d7bc6d1440893118b6c1f03d866) ([docs](https://doc.arcgis.com/en/arcgis-online/create-maps/use-blend-modes-mv.htm))
-    * [Effects documentation](https://doc.arcgis.com/en/arcgis-online/create-maps/use-effects.htm)
-    * Map status overlays:
-        * [Draft Watermark Overlay](https://www.arcgis.com/home/item.html?id=c4da1e9ee80744e1ace25813cab6ce4b)
-        * [Prototype Watermark Overlay](https://www.arcgis.com/home/item.html?id=45407e67af5941c59da3e0bd78a11b77)
-        * [Work In Progress Watermark Overlay](https://www.arcgis.com/home/item.html?id=10fbac90161940988773823083dcbfb0)
-        * [Preview Watermark Overlay](https://www.arcgis.com/home/item.html?id=a6cb0b820569470d9cb2da9d0677ef54)
-        * [Internal Watermark Overlay](https://www.arcgis.com/home/item.html?id=416001ff06ed48438860bfd370ccacf1)
-        * [Unpublished Watermark Overlay](https://www.arcgis.com/home/item.html?id=7934b0736dda4e8eba647bcdd5f159ca)
+# Custom Basemaps Assets
+
+Custom Basemaps Assets is a small ArcGIS developer tool for browsing a curated palette of public ArcGIS layers and item references used to compose custom basemaps. It provides searchable cards, metadata previews, item ID copying, and in-app Map Viewer previews for supported ArcGIS item types.
+
+This project is a static frontend built for GitHub Pages and lives inside the `arcgis-developer-tools` workspace.
+
+## What it does
+
+- Organizes curated assets into categories such as Base Layers, Reference Labels, Contours & Boundaries, Decoration, Population & Infrastructure, and Utils
+- Fetches live item metadata from the ArcGIS REST API for public items
+- Caches fetched metadata in `localStorage` to reduce repeat requests
+- Lets you search across titles, snippets, descriptions, tags, keywords, and item IDs
+- Supports direct preview links and embedded Map Viewer previews when applicable
+- Handles external reference links for Living Atlas searches, docs, and groups that are not single ArcGIS items
+
+## Tech stack
+
+- Vanilla JavaScript
+- Vite
+- Tailwind CSS via PostCSS
+
+## Project structure
+
+```text
+custom-basemaps-assets/
+├── index.html
+├── src/
+│   ├── api.js
+│   ├── cache.js
+│   ├── main.js
+│   ├── style.css
+│   └── config/
+│       └── assets.json
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+└── postcss.config.js
+```
+
+## Local development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the Vite dev server:
+
+```bash
+npm run dev
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+The production output is generated in `dist/`.
+
+## Configuration and data
+
+The source of truth for the asset catalog is [src/config/assets.json](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/config/assets.json).
+
+### Adding a standard ArcGIS item
+
+Add an item with its ArcGIS item ID and one or more categories:
+
+```json
+{
+  "id": "97fa1365da1e43eabb90d0364326bc2d",
+  "categories": ["base-layers"]
+}
+```
+
+Runtime metadata such as title, snippet, description, type, tags, and thumbnail is fetched from the ArcGIS REST API.
+
+### Adding an external reference
+
+Use a hardcoded entry when the asset is really a docs page, group, or search URL rather than a single ArcGIS item:
+
+```json
+{
+  "id": "_external_example",
+  "categories": ["utils"],
+  "hardcoded": {
+    "title": "Example external resource",
+    "snippet": "Short description.",
+    "thumbnailUrl": "",
+    "externalUrl": "https://example.com",
+    "type": "External"
+  }
+}
+```
+
+External items are displayed as links and do not support item ID copy or Map Viewer preview.
+
+### Adding a category
+
+Add a category definition in the `categories` array, then reference that category ID from item entries:
+
+```json
+{
+  "id": "my-category",
+  "label": "My Category",
+  "icon": "🗂️"
+}
+```
+
+## How it works
+
+- [src/main.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/main.js) handles state, rendering, search, filtering, modal behavior, and preview behavior
+- [src/api.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/api.js) builds ArcGIS URLs and fetches item metadata
+- [src/cache.js](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/src/cache.js) manages the `localStorage` cache and cache invalidation
+- [index.html](/Users/ral97612/workspace/arcgis-developer-tools/custom-basemaps-assets/index.html) contains the static app shell
+
+## Contributing
+
+Contributions should keep the catalog accurate, the UI behavior predictable, and the app easy to maintain.
+
+1. Create a branch for your change.
+2. Install dependencies with `npm install`.
+3. Make your update.
+4. Run `npm run build` to verify the app still builds cleanly.
+5. Review the generated app locally with `npm run preview` when your change affects UI behavior.
+6. Open a pull request with a clear description of the change and any asset or behavior impact.
+
+### Contribution guidelines
+
+- Prefer small, focused changes
+- Keep asset edits in `src/config/assets.json` unless behavior or presentation also needs to change
+- Use only public ArcGIS items that can be fetched without authentication
+- For non-item resources, use `_external_...` entries with `hardcoded` metadata
+- Preserve existing project style and keep the app framework-free unless there is a strong reason to change that
+- If you change behavior, verify it in the browser before submitting
+
+## Notes
+
+- Metadata is fetched from `https://www.arcgis.com/sharing/rest/content/items/{itemId}?f=json`
+- Cached metadata is stored in `localStorage` with a 24-hour TTL
+- `vite.config.js` uses relative paths so the app can be deployed to GitHub Pages
