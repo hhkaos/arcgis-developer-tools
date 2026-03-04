@@ -2,4 +2,3 @@ node_modules/
 .playwright-mcp/
 .claude
 blend-modes-explorer/assets/
-blend-modes-explorer/dist/
