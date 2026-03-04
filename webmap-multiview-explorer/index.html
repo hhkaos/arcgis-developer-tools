@@ -25,11 +25,75 @@
 
       .toolbar {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         align-items: center;
         padding: 10px 12px;
         background: white;
         border-bottom: 1px solid #e5e5e5;
+      }
+
+      #example-select {
+        min-width: 220px;
+        padding: 8px 10px;
+        border: 1px solid #c7c7c7;
+        background: white;
+      }
+
+      .example-select-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .info-tooltip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .info-tooltip button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #c7c7c7;
+        border-radius: 999px;
+        background: white;
+        color: #1f2937;
+        cursor: help;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .info-tooltip-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        z-index: 2;
+        width: min(320px, 75vw);
+        padding: 10px 12px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        color: #344054;
+        font-size: 13px;
+        line-height: 1.45;
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, -4px);
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+
+      .info-tooltip:hover .info-tooltip-panel,
+      .info-tooltip:focus-within .info-tooltip-panel {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(-50%, 0);
+      }
+
+      .info-tooltip-panel a {
+        color: #0b63ce;
       }
 
       #item-id-input {
@@ -44,6 +108,46 @@
         border: 1px solid #c7c7c7;
         background: white;
         cursor: pointer;
+      }
+
+      #share-link-btn {
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        cursor: pointer;
+      }
+
+      .toolbar-status {
+        display: none;
+        flex-basis: 100%;
+        font-size: 13px;
+        color: #5f6368;
+      }
+
+      .toolbar-status.visible {
+        display: block;
+      }
+
+      .toolbar-status.warning {
+        color: #b42318;
+      }
+
+      .share-output {
+        display: none;
+        padding: 8px 12px;
+        border-bottom: 1px solid #e5e5e5;
+        background: #ffffff;
+        font-size: 13px;
+        color: #344054;
+        word-break: break-all;
+      }
+
+      .share-output.visible {
+        display: block;
+      }
+
+      .share-output a {
+        color: #0b63ce;
       }
 
       .map-grid {
@@ -89,9 +193,26 @@
   <body>
     <div class="app">
       <div class="toolbar">
-        <input id="item-id-input" type="text" value="f2e9b762544945f390ca4ac3671cfa72" placeholder="Enter ArcGIS WebMap item ID" />
+        <div class="example-select-group">
+          <select id="example-select" aria-label="Curated examples">
+            <option value="">Loading examples...</option>
+          </select>
+          <div class="info-tooltip">
+            <button type="button" aria-label="About curated examples" aria-describedby="example-select-info">i</button>
+            <div id="example-select-info" class="info-tooltip-panel" role="tooltip">
+              This curated list is shared with
+              <a href="https://www.rauljimenez.info/arcgis-developer-tools/basemap-effects-code-explorer/" target="_blank" rel="noopener noreferrer"
+                >the Basemap Effects Code Explorer</a
+              >.
+            </div>
+          </div>
+        </div>
+        <input id="item-id-input" type="text" value="5af96e50fee2454781818267a51e955f" placeholder="Enter ArcGIS WebMap item ID" />
         <button id="load-map-btn" type="button">Load map</button>
+        <button id="share-link-btn" type="button">Share</button>
+        <div id="toolbar-status" class="toolbar-status" role="status" aria-live="polite"></div>
       </div>
+      <div id="share-output" class="share-output" aria-live="polite"></div>
 
       <div class="map-grid">
         <arcgis-map id="main-view-element"></arcgis-map>
@@ -108,13 +229,187 @@
       const zoomView1 = document.getElementById("zoom-view-1");
       const zoomView2 = document.getElementById("zoom-view-2");
       const zoomView3 = document.getElementById("zoom-view-3");
+      const exampleSelect = document.getElementById("example-select");
       const itemIdInput = document.getElementById("item-id-input");
       const loadMapBtn = document.getElementById("load-map-btn");
+      const shareLinkBtn = document.getElementById("share-link-btn");
+      const toolbarStatus = document.getElementById("toolbar-status");
+      const shareOutput = document.getElementById("share-output");
 
       const viewElements = [mainViewElement, zoomView1, zoomView2, zoomView3];
+      const curatedExamplesUrl =
+        "https://raw.githubusercontent.com/hhkaos/arcgis-developer-tools/refs/heads/main/basemap-effects-code-explorer/curated-examples.json";
+      const lastViewedStorageKey = "webmap-multiview:last-viewed";
+      const defaultItemId = itemIdInput.value.trim();
+      const queryItemId = new URLSearchParams(window.location.search).get("itemid")?.trim() ?? "";
+      let curatedExamples = [];
+      let isSyncingSelection = false;
+      let currentInputSource = "initial";
 
       // Wait for component methods/views to be available.
       await Promise.all(viewElements.map((viewElement) => viewElement.componentOnReady()));
+
+      const setStatusMessage = (message = "", tone = "default") => {
+        toolbarStatus.textContent = message;
+        toolbarStatus.classList.toggle("visible", Boolean(message));
+        toolbarStatus.classList.toggle("warning", tone === "warning");
+      };
+
+      const readLastViewed = () => {
+        try {
+          return JSON.parse(localStorage.getItem(lastViewedStorageKey) ?? "null");
+        } catch (error) {
+          console.warn("Unable to read last viewed item from localStorage:", error);
+          return null;
+        }
+      };
+
+      const saveLastViewed = (itemId) => {
+        try {
+          localStorage.setItem(lastViewedStorageKey, JSON.stringify({ itemId }));
+        } catch (error) {
+          console.warn("Unable to persist last viewed item:", error);
+        }
+      };
+
+      const clearItemIdFromUrl = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("itemid");
+
+        window.history.replaceState({}, "", url);
+      };
+
+      const buildShareUrl = (itemId) => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("itemid", itemId);
+        return url.toString();
+      };
+
+      const hideShareOutput = () => {
+        shareOutput.classList.remove("visible");
+        shareOutput.textContent = "";
+      };
+
+      const showShareOutput = (shareUrl) => {
+        shareOutput.replaceChildren();
+
+        const label = document.createElement("span");
+        label.textContent = "Share this URL: ";
+
+        const link = document.createElement("a");
+        link.href = shareUrl;
+        link.textContent = shareUrl;
+
+        shareOutput.append(label, link);
+        shareOutput.classList.add("visible");
+      };
+
+      const getCuratedExampleItemId = (example) => {
+        if (typeof example === "string") {
+          return example.trim();
+        }
+
+        if (!example || typeof example !== "object") {
+          return "";
+        }
+
+        const candidateKeys = ["webmapId", "webmapID", "webMapId", "itemId", "itemID", "itemid", "webmap", "webMap", "id", "value"];
+
+        for (const key of candidateKeys) {
+          const value = example[key];
+          if (typeof value === "string" && value.trim()) {
+            return value.trim();
+          }
+        }
+
+        return "";
+      };
+
+      const getCuratedExampleLabel = (example, index, itemId) => {
+        if (typeof example === "string") {
+          return `Example ${index + 1}`;
+        }
+
+        if (!example || typeof example !== "object") {
+          return itemId || `Example ${index + 1}`;
+        }
+
+        const candidateKeys = ["label", "title", "name", "description"];
+
+        for (const key of candidateKeys) {
+          const value = example[key];
+          if (typeof value === "string" && value.trim()) {
+            return value.trim();
+          }
+        }
+
+        return itemId || `Example ${index + 1}`;
+      };
+
+      const syncSelectWithItemId = (itemId) => {
+        isSyncingSelection = true;
+
+        const matchingExample = curatedExamples.find((example) => example.itemId === itemId);
+        exampleSelect.value = matchingExample ? matchingExample.itemId : "";
+
+        isSyncingSelection = false;
+      };
+
+      const populateExampleSelect = (examples) => {
+        curatedExamples = examples;
+        exampleSelect.replaceChildren();
+
+        const placeholderOption = document.createElement("option");
+        placeholderOption.value = "";
+        placeholderOption.textContent = curatedExamples.length ? "Choose a curated example" : "No curated examples available";
+        exampleSelect.append(placeholderOption);
+
+        curatedExamples.forEach((example) => {
+          const option = document.createElement("option");
+          option.value = example.itemId;
+          option.textContent = example.label;
+          exampleSelect.append(option);
+        });
+
+        syncSelectWithItemId(itemIdInput.value.trim());
+      };
+
+      const loadCuratedExamples = async () => {
+        exampleSelect.disabled = true;
+
+        try {
+          const response = await fetch(curatedExamplesUrl);
+
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+
+          const payload = await response.json();
+          const rawExamples = Array.isArray(payload) ? payload : Array.isArray(payload?.examples) ? payload.examples : [];
+          const normalizedExamples = rawExamples
+            .map((example, index) => {
+              const itemId = getCuratedExampleItemId(example);
+              if (!itemId) {
+                return null;
+              }
+
+              return {
+                itemId,
+                label: getCuratedExampleLabel(example, index, itemId),
+              };
+            })
+            .filter(Boolean);
+
+          populateExampleSelect(normalizedExamples);
+          setStatusMessage();
+        } catch (error) {
+          console.warn("Unable to load curated examples:", error);
+          populateExampleSelect([]);
+          setStatusMessage("Warning: curated examples could not be loaded.", "warning");
+        } finally {
+          exampleSelect.disabled = false;
+        }
+      };
 
       const createWebMap = (itemId) => {
         return new WebMap({
@@ -126,7 +421,6 @@
         await Promise.all(viewElements.map((viewElement) => viewElement.viewOnReady()));
 
         const mainCenter = mainViewElement.view.center.clone();
-        const mainZoom = 1;
 
         await Promise.all([
           zoomView1.view.goTo({ center: mainCenter, zoom: 5 }),
@@ -135,9 +429,17 @@
         ]);
       };
 
-      const loadWebMap = async () => {
-        const itemId = itemIdInput.value.trim();
+      const loadWebMap = async (providedItemId, source = currentInputSource) => {
+        const itemId = (providedItemId ?? itemIdInput.value).trim();
         if (!itemId) return;
+
+        itemIdInput.value = itemId;
+        if (source === "manual") {
+          syncSelectWithItemId("");
+        } else {
+          syncSelectWithItemId(itemId);
+        }
+        setStatusMessage();
 
         loadMapBtn.disabled = true;
         loadMapBtn.textContent = "Loading...";
@@ -148,16 +450,74 @@
 
           await maps[0].load();
           await setInitialZoomLevels();
+          saveLastViewed(itemId);
+          clearItemIdFromUrl();
+          hideShareOutput();
         } catch (error) {
           console.error("Unable to load webmap item:", error);
+          setStatusMessage("Warning: unable to load the selected webmap item.", "warning");
         } finally {
           loadMapBtn.disabled = false;
           loadMapBtn.textContent = "Load map";
         }
       };
 
-      loadMapBtn.addEventListener("click", loadWebMap);
+      loadMapBtn.addEventListener("click", () => {
+        loadWebMap();
+      });
+      shareLinkBtn.addEventListener("click", async () => {
+        const itemId = itemIdInput.value.trim();
+        if (!itemId) {
+          return;
+        }
 
+        const shareUrl = buildShareUrl(itemId);
+
+        if (navigator.clipboard?.writeText && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            hideShareOutput();
+            setStatusMessage("Share link copied to clipboard.");
+            return;
+          } catch (error) {
+            console.warn("Unable to copy share link to clipboard:", error);
+          }
+        }
+
+        setStatusMessage("Clipboard access is unavailable. Copy the share URL below.", "warning");
+        showShareOutput(shareUrl);
+      });
+      exampleSelect.addEventListener("change", async (event) => {
+        if (isSyncingSelection) {
+          return;
+        }
+
+        hideShareOutput();
+        const nextItemId = event.target.value.trim();
+        if (!nextItemId) {
+          return;
+        }
+
+        currentInputSource = "select";
+        await loadWebMap(nextItemId, "select");
+      });
+
+      itemIdInput.addEventListener("input", () => {
+        if (isSyncingSelection) {
+          return;
+        }
+
+        currentInputSource = "manual";
+        syncSelectWithItemId("");
+        hideShareOutput();
+      });
+
+      const lastViewed = readLastViewed();
+
+      itemIdInput.value = queryItemId || lastViewed?.itemId?.trim() || defaultItemId;
+      currentInputSource = queryItemId ? "query" : lastViewed?.itemId ? "restore" : "initial";
+
+      await loadCuratedExamples();
       await loadWebMap();
     </script>
   </body>
