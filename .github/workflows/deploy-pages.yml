@@ -29,6 +29,7 @@ jobs:
           cache-dependency-path: |
             blend-modes-explorer/package-lock.json
             basemap-effects-code-explorer/package-lock.json
+            layer-palette/package-lock.json
 
       - name: Build blend-modes-explorer
         working-directory: blend-modes-explorer
@@ -38,6 +39,12 @@ jobs:
 
       - name: Build basemap-effects-code-explorer
         working-directory: basemap-effects-code-explorer
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build layer-palette
+        working-directory: layer-palette
         run: |
           npm ci
           npm run build
@@ -53,13 +60,18 @@ jobs:
             --exclude 'basemap-effects-code-explorer/dist/' \
             --exclude 'blend-modes-explorer/node_modules/' \
             --exclude 'blend-modes-explorer/dist/' \
-            --exclude 'blend-modes-explorer/assets/'
+            --exclude 'blend-modes-explorer/assets/' \
+            --exclude 'layer-palette/node_modules/' \
+            --exclude 'layer-palette/dist/'
 
           cp basemap-effects-code-explorer/dist/index.html _site/basemap-effects-code-explorer/index.html
           cp -R basemap-effects-code-explorer/dist/assets _site/basemap-effects-code-explorer/assets
 
           cp blend-modes-explorer/dist/index.html _site/blend-modes-explorer/index.html
           cp -R blend-modes-explorer/dist/assets _site/blend-modes-explorer/assets
+
+          cp layer-palette/dist/index.html _site/layer-palette/index.html
+          cp -R layer-palette/dist/assets _site/layer-palette/assets
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
