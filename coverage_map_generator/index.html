@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coverage Map Generator</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Coverage Map Generator</h1>
+      <div id="authArea" class="auth-area">
+        <button id="signInBtn" class="btn btn-primary">Sign in with ArcGIS</button>
+        <div id="userInfo" class="user-info hidden" aria-live="polite">
+          <span id="userAvatar" class="avatar" aria-hidden="true"></span>
+          <span id="username"></span>
+          <button id="signOutBtn" class="btn btn-secondary">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div id="banner" class="banner hidden" role="alert"></div>
+
+      <section id="inputSection" class="panel hidden">
+        <div class="panel-head">
+          <h2>1. Input</h2>
+          <button class="collapse-btn" data-target="inputBody" aria-expanded="true">Collapse</button>
+        </div>
+        <div id="inputBody" class="panel-body">
+          <fieldset class="source-tabs">
+            <legend>Input Layer Source</legend>
+            <div class="tab-buttons" role="radiogroup" aria-label="Input source">
+              <label><input type="radio" name="sourceType" value="public" checked /> Public Feature Layer</label>
+              <label><input type="radio" name="sourceType" value="private" /> Private Feature Layer</label>
+              <label><input type="radio" name="sourceType" value="upload" /> Upload GeoJSON</label>
+            </div>
+
+            <div id="sourcePublic" class="source-panel">
+              <label>URL <input id="publicUrl" type="url" placeholder="https://.../FeatureServer/0" /></label>
+              <label>Filter (optional) <input id="publicFilter" type="text" placeholder="LocCounty='RIVERSIDE'" /></label>
+              <p id="publicCountMeta" class="help-text">Matching features: -</p>
+            </div>
+
+            <div id="sourcePrivate" class="source-panel hidden">
+              <label>URL <input id="privateUrl" type="url" placeholder="https://.../FeatureServer/0" /></label>
+              <label>Service Token <input id="privateToken" type="text" placeholder="token" /></label>
+              <label>Filter (optional) <input id="privateFilter" type="text" placeholder="OBJECTID > 0" /></label>
+              <p id="privateCountMeta" class="help-text">Matching features: -</p>
+            </div>
+
+            <div id="sourceUpload" class="source-panel hidden">
+              <label>GeoJSON File <input id="geojsonFile" type="file" accept=".json,.geojson,application/geo+json,application/json" /></label>
+              <div id="dropZone" class="drop-zone">Drag and drop .geojson/.json here</div>
+              <p id="uploadMeta" class="help-text">Must be a FeatureCollection of Point features.</p>
+            </div>
+            <p id="sourceError" class="field-error hidden"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Signal Technologies</legend>
+            <div id="technologyGrid" class="tech-grid"></div>
+            <p id="techError" class="field-error hidden"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Processing Mode</legend>
+            <label><input type="radio" name="processingMode" value="parallel" checked /> Parallel</label>
+            <label><input type="radio" name="processingMode" value="sequential" /> Sequential</label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Output Naming</legend>
+            <label>Title Prefix <input id="titlePrefix" type="text" value="coverage" /></label>
+          </fieldset>
+
+          <button id="generateBtn" class="btn btn-primary" disabled>Generate Coverage Maps</button>
+        </div>
+      </section>
+
+      <section id="progressSection" class="panel hidden">
+        <div class="panel-head">
+          <h2>2. Progress</h2>
+          <button class="collapse-btn" data-target="progressBody" aria-expanded="true">Collapse</button>
+        </div>
+        <div id="progressBody" class="panel-body">
+          <table class="progress-table">
+            <thead>
+              <tr>
+                <th>Technology</th>
+                <th>Status</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="progressRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="mapSection" class="panel hidden">
+        <div class="panel-head">
+          <h2>3. Map</h2>
+          <button class="collapse-btn" data-target="mapBody" aria-expanded="true">Collapse</button>
+        </div>
+        <div id="mapBody" class="panel-body map-panel-body">
+          <div class="map-toolbar">
+            <input
+              id="coverageMapFile"
+              class="hidden-file-input"
+              type="file"
+              accept=".json,.geojson,application/geo+json,application/json"
+            />
+            <button id="uploadCoverageBtn" class="btn btn-secondary">Upload Coverage GeoJSON</button>
+            <button id="dissolveBtn" class="btn btn-secondary" disabled>Dissolve + Download</button>
+            <button id="downloadAllBtn" class="btn btn-secondary" disabled>Download All</button>
+            <button id="fullscreenBtn" class="btn btn-secondary">Toggle Fullscreen</button>
+          </div>
+          <div id="viewDiv" class="map-view" aria-label="Coverage map"></div>
+          <aside id="legend" class="legend collapsed">
+            <button id="legendToggle" class="btn btn-secondary">Legend</button>
+            <div id="legendContent" class="legend-content"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
