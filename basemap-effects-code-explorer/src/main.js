@@ -116,6 +116,9 @@ function resetToDefaultExtent(mode) {
 function updateViewLinks(itemId) {
   const mapViewerUrl = `https://www.arcgis.com/apps/mapviewer/index.html?webmap=${itemId}`;
   const itemDetailsUrl = `https://www.arcgis.com/home/item.html?id=${itemId}`;
+  const multiscaleUrl = `https://www.rauljimenez.info/arcgis-developer-tools/webmap-multiview-explorer/?itemid=${itemId}`;
+  document.getElementById("multiscale-link-2d").href = multiscaleUrl;
+  document.getElementById("multiscale-link-3d").href = multiscaleUrl;
   document.getElementById("map-viewer-link-2d").href = mapViewerUrl;
   document.getElementById("map-viewer-link-3d").href = mapViewerUrl;
   document.getElementById("item-details-link-2d").href = itemDetailsUrl;
