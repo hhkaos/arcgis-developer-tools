@@ -26,10 +26,18 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: blend-modes-explorer/package-lock.json
+          cache-dependency-path: |
+            blend-modes-explorer/package-lock.json
+            basemap-effects-code-explorer/package-lock.json
 
       - name: Build blend-modes-explorer
         working-directory: blend-modes-explorer
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build basemap-effects-code-explorer
+        working-directory: basemap-effects-code-explorer
         run: |
           npm ci
           npm run build
@@ -41,9 +49,14 @@ jobs:
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude '.DS_Store' \
+            --exclude 'basemap-effects-code-explorer/node_modules/' \
+            --exclude 'basemap-effects-code-explorer/dist/' \
             --exclude 'blend-modes-explorer/node_modules/' \
             --exclude 'blend-modes-explorer/dist/' \
             --exclude 'blend-modes-explorer/assets/'
+
+          cp basemap-effects-code-explorer/dist/index.html _site/basemap-effects-code-explorer/index.html
+          cp -R basemap-effects-code-explorer/dist/assets _site/basemap-effects-code-explorer/assets
 
           cp blend-modes-explorer/dist/index.html _site/blend-modes-explorer/index.html
           cp -R blend-modes-explorer/dist/assets _site/blend-modes-explorer/assets
