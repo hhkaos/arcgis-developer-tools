@@ -60,8 +60,12 @@ const state = {
   map:          null,
   previewView:  null,
   previewStyleUrl: null,
+  previewRefreshFrame: 0,
+  previewRequestId: 0,
   sortable:     null,
   layerElements:new Map(),
+  selectedLayerIds:new Set(),
+  selectionAnchorId:null,
   layersDirty:  true,
   emptyLayerRow:null,
   jsonFrame:    0,
@@ -73,6 +77,18 @@ const $ = (id) => document.getElementById(id);
 const show = (el) => el.classList.remove('hidden');
 const hide = (el) => el.classList.add('hidden');
 const setVisible = (el, v) => v ? show(el) : hide(el);
+
+function setJsonPanelCollapsed(collapsed) {
+  const panel = $('jsonPanel');
+  const mapPanel = document.querySelector('.map-panel');
+  const btn = $('toggleJsonBtn');
+  if (!panel || !btn) return;
+
+  panel.classList.toggle('json-collapsed', collapsed);
+  mapPanel?.classList.toggle('json-collapsed', collapsed);
+  btn.textContent = collapsed ? 'Show JSON' : 'Hide JSON';
+  btn.setAttribute('aria-expanded', String(!collapsed));
+}
 
 function showStatus(msg, type = 'info') {
   const s = $('statusMsg');
@@ -103,6 +119,65 @@ function resetModalImportState() {
   };
 }
 
+function normalizePreviewCenter(center) {
+  if (!center) return null;
+
+  if (Array.isArray(center) && center.length >= 2) {
+    const [x, y] = center;
+    return Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
+  }
+
+  const x = center.longitude ?? center.lng ?? center.x;
+  const y = center.latitude ?? center.lat ?? center.y;
+  return Number.isFinite(x) && Number.isFinite(y) ? [x, y] : null;
+}
+
+function getCurrentPreviewCamera() {
+  if (state.map) {
+    return {
+      center: normalizePreviewCenter(state.map.getCenter()),
+      zoom: state.map.getZoom(),
+      bearing: state.map.getBearing(),
+      pitch: state.map.getPitch(),
+    };
+  }
+
+  if (state.previewView) {
+    return {
+      center: normalizePreviewCenter(state.previewView.center),
+      zoom: state.previewView.zoom,
+      bearing: state.previewView.rotation || 0,
+      pitch: state.previewView.camera?.tilt || 0,
+    };
+  }
+
+  return null;
+}
+
+function applyPreviewCamera(style, camera) {
+  if (!camera) return style;
+
+  const next = { ...style };
+  const center = normalizePreviewCenter(camera.center);
+  if (center) next.center = center;
+  if (Number.isFinite(camera.zoom)) next.zoom = camera.zoom;
+  if (Number.isFinite(camera.bearing)) next.bearing = camera.bearing;
+  if (Number.isFinite(camera.pitch)) next.pitch = camera.pitch;
+  return next;
+}
+
+function schedulePreviewRefresh() {
+  if (!state.original) return;
+
+  const requestId = ++state.previewRequestId;
+  if (state.previewRefreshFrame) cancelAnimationFrame(state.previewRefreshFrame);
+
+  state.previewRefreshFrame = requestAnimationFrame(() => {
+    state.previewRefreshFrame = 0;
+    previewMap(requestId);
+  });
+}
+
 function uniqueLayerId(baseId) {
   let id = baseId;
   let i = 2;
@@ -123,6 +198,70 @@ function sanitizeId(value, fallback = 'custom-source') {
 
 function markLayersDirty() {
   state.layersDirty = true;
+}
+
+function pruneSelectedLayerIds() {
+  const validIds = new Set(state.layers.map((layer) => layer.id));
+  for (const id of [...state.selectedLayerIds]) {
+    if (!validIds.has(id)) state.selectedLayerIds.delete(id);
+  }
+  if (state.selectionAnchorId && !validIds.has(state.selectionAnchorId)) {
+    state.selectionAnchorId = null;
+  }
+}
+
+function syncLayerSelectionUi() {
+  pruneSelectedLayerIds();
+  for (const [id, item] of state.layerElements) {
+    item.classList.toggle('layer-selected', state.selectedLayerIds.has(id));
+  }
+}
+
+function setSelectedLayerIds(ids, anchorId = null) {
+  const nextIds = Array.from(ids);
+  state.selectedLayerIds = new Set(nextIds);
+  state.selectionAnchorId = anchorId ?? nextIds[nextIds.length - 1] ?? null;
+  syncLayerSelectionUi();
+}
+
+function getLayerIndex(layerId) {
+  return state.layers.findIndex((layer) => layer.id === layerId);
+}
+
+function handleLayerSelection(layerId, options = {}) {
+  if (!layerId) return;
+  const { range = false, toggle = false } = options;
+
+  if (range) {
+    const anchorId = state.selectionAnchorId || layerId;
+    const anchorIndex = getLayerIndex(anchorId);
+    const targetIndex = getLayerIndex(layerId);
+
+    if (anchorIndex === -1 || targetIndex === -1) {
+      setSelectedLayerIds([layerId], layerId);
+      return;
+    }
+
+    const start = Math.min(anchorIndex, targetIndex);
+    const end = Math.max(anchorIndex, targetIndex);
+    const rangeIds = state.layers.slice(start, end + 1).map((layer) => layer.id);
+    setSelectedLayerIds(rangeIds, anchorId);
+    return;
+  }
+
+  if (toggle) {
+    if (state.selectedLayerIds.has(layerId)) {
+      state.selectedLayerIds.delete(layerId);
+    } else {
+      state.selectedLayerIds.add(layerId);
+    }
+    state.selectionAnchorId = layerId;
+  } else if (state.selectedLayerIds.size !== 1 || !state.selectedLayerIds.has(layerId)) {
+    state.selectedLayerIds = new Set([layerId]);
+    state.selectionAnchorId = layerId;
+  }
+
+  syncLayerSelectionUi();
 }
 
 function appendQuery(url, key, value) {
@@ -458,6 +597,7 @@ function renderSources() {
 }
 
 function removeSource(id) {
+  const previousCount = state.layers.length;
   delete state.addedSources[id];
   // Also remove layers added for this source
   state.layers = state.layers.filter((l) => {
@@ -471,15 +611,17 @@ function removeSource(id) {
   renderSources();
   renderLayers();
   updateJson();
+  if (state.layers.length !== previousCount) schedulePreviewRefresh();
 }
 
 // ═══ Render: Layers ═══════════════════════════════════════════════════════════
 
 function createLayerMarkup(layer) {
   const isAdded = state.addedLayerIds.has(layer.id);
+  const isSelected = state.selectedLayerIds.has(layer.id);
   const color = TYPE_COLOR[layer.type] || '#94a3b8';
   return `
-    <div class="layer-item${isAdded ? ' layer-added' : ''}" data-id="${esc(layer.id)}">
+    <div class="layer-item${isAdded ? ' layer-added' : ''}${isSelected ? ' layer-selected' : ''}" data-id="${esc(layer.id)}">
       <div class="drag-handle" title="Drag to reorder">
         <svg viewBox="0 0 10 16" fill="currentColor" width="9" height="14">
           <circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/>
@@ -528,9 +670,11 @@ function rebuildLayersList() {
     handle: '.drag-handle',
     ghostClass: 'layer-ghost',
     dragClass: 'layer-dragging',
+    onStart: handleLayerDragStart,
     onEnd: syncLayerOrder,
   });
 
+  syncLayerSelectionUi();
   state.layersDirty = false;
 }
 
@@ -556,12 +700,14 @@ function clearLayerEmptyState() {
 }
 
 function renderLayers(filter = '') {
-  const list = $('layersList');
   const q = filter.trim().toLowerCase();
   $('layerCount').textContent = state.layers.length;
+  pruneSelectedLayerIds();
 
   if (state.layersDirty || state.layerElements.size !== state.layers.length) {
     rebuildLayersList();
+  } else {
+    syncLayerSelectionUi();
   }
 
   let visibleCount = 0;
@@ -585,9 +731,16 @@ function renderLayers(filter = '') {
   }
 }
 
-function syncLayerOrder() {
-  const items = $('layersList').querySelectorAll('.layer-item[data-id]');
-  const orderedIds = Array.from(items).map((el) => el.dataset.id);
+function handleLayerDragStart(evt) {
+  const draggedId = evt?.item?.dataset?.id;
+  if (!draggedId) return;
+
+  if (!state.selectedLayerIds.has(draggedId) || state.selectedLayerIds.size <= 1) {
+    setSelectedLayerIds([draggedId], draggedId);
+  }
+}
+
+function applyLayerOrder(orderedIds, rerender = false) {
   const orderedIdSet = new Set(orderedIds);
   const map = new Map(state.layers.map((l) => [l.id, l]));
 
@@ -597,7 +750,48 @@ function syncLayerOrder() {
   for (const l of state.layers) if (!orderedIdSet.has(l.id)) reordered.push(l);
 
   state.layers = reordered;
+  if (rerender) {
+    markLayersDirty();
+    renderLayers($('layerSearch').value);
+  }
   updateJson();
+  schedulePreviewRefresh();
+}
+
+function buildMultiLayerOrder(orderedIds, movedId) {
+  const movedIndex = orderedIds.indexOf(movedId);
+  if (movedIndex === -1) return orderedIds;
+
+  const visibleIdSet = new Set(orderedIds);
+  const selectedOrdered = state.layers
+    .map((layer) => layer.id)
+    .filter((id) => state.selectedLayerIds.has(id) && visibleIdSet.has(id));
+
+  if (selectedOrdered.length <= 1) return orderedIds;
+
+  const unselectedOrdered = orderedIds.filter((id) => !state.selectedLayerIds.has(id));
+  const insertAt = orderedIds
+    .slice(0, movedIndex)
+    .reduce((count, id) => count + (state.selectedLayerIds.has(id) ? 0 : 1), 0);
+
+  return [
+    ...unselectedOrdered.slice(0, insertAt),
+    ...selectedOrdered,
+    ...unselectedOrdered.slice(insertAt),
+  ];
+}
+
+function syncLayerOrder(evt) {
+  const items = $('layersList').querySelectorAll('.layer-item[data-id]');
+  const orderedIds = Array.from(items).map((el) => el.dataset.id);
+  const movedId = evt?.item?.dataset?.id;
+
+  if (movedId && state.selectedLayerIds.size > 1 && state.selectedLayerIds.has(movedId)) {
+    applyLayerOrder(buildMultiLayerOrder(orderedIds, movedId), true);
+    return;
+  }
+
+  applyLayerOrder(orderedIds);
 }
 
 // ═══ JSON Output ══════════════════════════════════════════════════════════════
@@ -715,26 +909,6 @@ function getSrcFields(type) {
         ${tileUrlInput()}
         <div class="field-hint" style="margin:0 0 10px">
           For ArcGIS VectorTileServer URLs, use the full service endpoint (e.g. <code>…/VectorTileServer</code>).
-        </div>
-        <div class="arcgis-assist" id="arcgisAssistSection">
-          <div class="arcgis-assist-header">
-            <div>
-              <div class="arcgis-assist-title">ArcGIS source import</div>
-              <div class="field-hint" style="margin-top:2px">Inspect a VectorTileServer, style item ID, or style URL to discover source layers and reuse the source style.</div>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline" id="arcgisDetectBtn">Inspect</button>
-          </div>
-          <div class="form-row-2">
-            <div class="form-group">
-              <label for="arcgisStyleItemId">Style Item ID (optional)</label>
-              <input type="text" id="arcgisStyleItemId" class="form-input" placeholder="ArcGIS item ID for root.json" />
-            </div>
-            <div class="form-group">
-              <label for="arcgisStyleUrl">Style URL (optional)</label>
-              <input type="text" id="arcgisStyleUrl" class="form-input" placeholder="…/resources/styles/root.json?f=pjson" />
-            </div>
-          </div>
-          <div id="arcgisDiscovery" class="arcgis-discovery hidden"></div>
         </div>
         ${zoomSchemeFields()}
       `;
@@ -875,6 +1049,33 @@ function getSrcFields(type) {
 
     default: return '';
   }
+}
+
+function getSrcPreFields(type) {
+  if (type !== 'vector') return '';
+
+  return `
+    <div class="arcgis-assist" id="arcgisAssistSection">
+      <div class="arcgis-assist-header">
+        <div>
+          <div class="arcgis-assist-title">ArcGIS source import</div>
+          <div class="field-hint" style="margin-top:2px">Inspect a VectorTileServer, style item ID, or style URL to discover source layers and reuse the source style.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" id="arcgisDetectBtn">Inspect</button>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="arcgisStyleItemId">Style Item ID (optional)</label>
+          <input type="text" id="arcgisStyleItemId" class="form-input" placeholder="ArcGIS item ID for root.json" />
+        </div>
+        <div class="form-group">
+          <label for="arcgisStyleUrl">Style URL (optional)</label>
+          <input type="text" id="arcgisStyleUrl" class="form-input" placeholder="…/resources/styles/root.json?f=pjson" />
+        </div>
+      </div>
+      <div id="arcgisDiscovery" class="arcgis-discovery hidden"></div>
+    </div>
+  `;
 }
 
 // ═══ Layer Form Templates ═════════════════════════════════════════════════════
@@ -1491,6 +1692,7 @@ function saveSource() {
   const sourceId   = $('srcId').value.trim();
   const sourceType = $('srcType').value;
   const srcConfig  = collectSource();
+  let layersChanged = false;
 
   state.addedSources[sourceId] = srcConfig;
   let importedCount = 0;
@@ -1512,16 +1714,19 @@ function saveSource() {
       }
       state.addedLayerIds.add(layer.id);
       markLayersDirty();
+      layersChanged = true;
     }
   }
 
   if (sourceType === 'vector' && $('importStyledLayers')?.checked) {
     importedCount = importDiscoveredStyleLayers(sourceId);
+    if (importedCount) layersChanged = true;
   }
 
   renderSources();
   renderLayers($('layerSearch').value);
   updateJson();
+  if (layersChanged) schedulePreviewRefresh();
   closeModal();
   const suffix = importedCount ? ` (${importedCount} styled layers imported)` : '';
   showStatus(`Source "${sourceId}" added successfully${suffix}.`, 'success');
@@ -1545,6 +1750,7 @@ function closeModal() { hide($('sourceModal')); }
 
 function refreshSrcFields() {
   resetModalImportState();
+  $('srcPreTypeFields').innerHTML = getSrcPreFields($('srcType').value);
   $('srcTypeFields').innerHTML = getSrcFields($('srcType').value);
   setupUrlMethodToggle();
   setupArcgisImportControls();
@@ -1680,13 +1886,15 @@ function resolveStyleForPreview(style) {
   return { ...style, sources };
 }
 
-async function previewMap() {
+async function previewMap(requestId = ++state.previewRequestId) {
+  if (requestId !== state.previewRequestId) return;
   const style = buildModified();
   if (!style) return;
   $('mapHint').textContent = 'Resolving tile sources…';
 
-  const resolved = resolveStyleForPreview(style);
+  const resolved = resolveStyleForPreview(applyPreviewCamera(style, getCurrentPreviewCamera()));
   const spriteDiagnostics = await inspectSpriteAssets(resolved);
+  if (requestId !== state.previewRequestId) return;
   const vectorSourceDebug = Object.fromEntries(
     Object.entries(resolved.sources || {})
       .filter(([, src]) => src?.type === 'vector')
@@ -1703,10 +1911,15 @@ async function previewMap() {
     showStatus('Sprite diagnostics found issues. See console for details.', 'info');
     console.warn('[Sprite diagnostics]', spriteDiagnostics);
   }
-  await initMap(resolved);
+  await initMap(resolved, requestId);
 }
 
 function destroyPreviewMap() {
+  if (state.previewRefreshFrame) {
+    cancelAnimationFrame(state.previewRefreshFrame);
+    state.previewRefreshFrame = 0;
+  }
+
   if (state.map) {
     state.map.remove();
     state.map = null;
@@ -1737,7 +1950,8 @@ function hasUnsavedPreviewChanges() {
   });
 }
 
-async function initMap(style) {
+async function initMap(style, requestId = state.previewRequestId) {
+  if (requestId !== state.previewRequestId) return;
   destroyPreviewMap();
 
   if (!state.itemId) {
@@ -1747,7 +1961,7 @@ async function initMap(style) {
 
   if (hasUnsavedPreviewChanges()) {
     $('mapHint').textContent = 'Previewing edited style with MapLibre';
-    initMapLibreMap(style);
+    initMapLibreMap(style, requestId);
     return;
   }
 
@@ -1758,6 +1972,7 @@ async function initMap(style) {
     'esri/layers/VectorTileLayer',
     'esri/portal/PortalItem',
   ]);
+  if (requestId !== state.previewRequestId) return;
 
   const vectorTileLayer = new VectorTileLayer({
     portalItem: new PortalItem({
@@ -1796,7 +2011,8 @@ async function initMap(style) {
   });
 }
 
-function initMapLibreMap(style) {
+function initMapLibreMap(style, requestId = state.previewRequestId) {
+  if (requestId !== state.previewRequestId) return;
   state.map = new maplibregl.Map({
     container: 'map',
     style,
@@ -1855,6 +2071,9 @@ async function loadStyle() {
   state.layers = [];
   state.addedSources = {};
   state.addedLayerIds = new Set();
+  state.previewRequestId++;
+  state.selectedLayerIds = new Set();
+  state.selectionAnchorId = null;
   state.layerElements = new Map();
   state.emptyLayerRow = null;
   state.layersDirty = true;
@@ -1880,6 +2099,7 @@ async function loadStyle() {
     renderSources();
     renderLayers();
     updateJson();
+    schedulePreviewRefresh();
   } catch (err) {
     hide($('loadingState'));
     show($('emptyState'));
@@ -1932,6 +2152,7 @@ async function fetchStyle(itemId) {
 
 function init() {
   resetModalImportState();
+  setJsonPanelCollapsed(true);
   // Load
   $('loadBtn').addEventListener('click', loadStyle);
   $('itemId').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStyle(); });
@@ -1969,20 +2190,38 @@ function init() {
   $('layerSearch').addEventListener('input', (e) => renderLayers(e.target.value));
   $('layersList').addEventListener('click', (e) => {
     const btn = e.target.closest('.remove-layer-btn');
-    if (!btn) return;
+    if (btn) {
+      const id = btn.dataset.id;
+      state.layers = state.layers.filter((l) => l.id !== id);
+      state.addedLayerIds.delete(id);
+      state.selectedLayerIds.delete(id);
+      if (state.selectionAnchorId === id) state.selectionAnchorId = null;
+      markLayersDirty();
+      renderLayers($('layerSearch').value);
+      updateJson();
+      schedulePreviewRefresh();
+      return;
+    }
 
-    const id = btn.dataset.id;
-    state.layers = state.layers.filter((l) => l.id !== id);
-    state.addedLayerIds.delete(id);
-    markLayersDirty();
-    renderLayers($('layerSearch').value);
-    updateJson();
+    const item = e.target.closest('.layer-item[data-id]');
+    if (!item || e.target.closest('.drag-handle')) return;
+
+    handleLayerSelection(item.dataset.id, {
+      range: e.shiftKey,
+      toggle: !e.shiftKey && (e.metaKey || e.ctrlKey),
+    });
   });
 
   // Map preview
   $('previewBtn').addEventListener('click', previewMap);
 
   // Copy / Download
+  $('toggleJsonBtn').addEventListener('click', () => {
+    $('toggleJsonBtn').blur();
+    $('jsonPanel').classList.contains('json-collapsed')
+      ? setJsonPanelCollapsed(false)
+      : setJsonPanelCollapsed(true);
+  });
   $('copyBtn').addEventListener('click', copyJson);
   $('downloadBtn').addEventListener('click', downloadJson);
 }

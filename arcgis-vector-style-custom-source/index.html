@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>ArcGIS Vector Style Editor</title>
+  <title>Experimental ArcGIS Vector Style Merge Tool</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css" />
   <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
   <script>
@@ -32,8 +32,8 @@
         <circle cx="16" cy="16" r="3.5" fill="white"/>
       </svg>
       <div>
-        <div class="brand-title">Vector Style Editor</div>
-        <div class="brand-sub">ArcGIS Developer Tools</div>
+        <div class="brand-title">Experimental Vector Style Merge Tool</div>
+        <div class="brand-sub">Combine ArcGIS vector styles and rearrange layers</div>
       </div>
     </div>
     <div class="header-controls">
@@ -72,11 +72,11 @@
       <circle cx="58" cy="22" r="10" fill="#0079C1"/>
       <path d="M58 17v5l3.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
     </svg>
-    <h2>Enter an ArcGIS Item ID</h2>
-    <p>Load a vector tile style to inspect sources, layers, and add custom sources.</p>
+    <h2>Load an ArcGIS vector tile style</h2>
+    <p>Experimental tool for combining ArcGIS vector styles, inspecting sources, and rearranging layers without using the official ArcGIS Vector Style Editor.</p>
     <div class="empty-example">
       <span class="example-label">Try an example:</span>
-      <code id="exampleId" class="example-code">31450c9abff04ed59866582da3f73fdc</code>
+      <code id="exampleId" class="example-code">2afe5b807fa74006be6363fd243ffb30</code>
       <button id="useExample" class="btn-link">Use this →</button>
     </div>
   </div>
@@ -111,7 +111,7 @@
             Layers
             <span class="count-badge" id="layerCount"></span>
           </h2>
-          <span class="drag-hint">drag to reorder</span>
+          <span class="drag-hint">click: single, shift: range, cmd/ctrl: scattered, drag to reorder</span>
         </div>
         <div class="search-wrap">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="search-icon">
@@ -130,9 +130,9 @@
       <!-- Map panel -->
       <div class="map-panel">
         <div class="panel-toolbar">
-          <h2 class="section-title">Map Preview</h2>
+          <h2 class="section-title">Style Preview</h2>
           <div class="toolbar-right">
-            <span class="map-hint" id="mapHint">Click Preview to render the style</span>
+            <span class="map-hint" id="mapHint">Preview refreshes automatically after load and layer changes</span>
             <button id="previewBtn" class="btn btn-sm btn-primary">
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polygon points="3,1 13,7 3,13" fill="currentColor" stroke="none"/>
@@ -145,10 +145,13 @@
       </div>
 
       <!-- JSON panel -->
-      <div class="json-panel">
+      <div id="jsonPanel" class="json-panel json-collapsed">
         <div class="panel-toolbar">
-          <h2 class="section-title">Modified Style JSON</h2>
+          <h2 class="section-title">Generated Style JSON</h2>
           <div class="toolbar-right">
+            <button id="toggleJsonBtn" class="btn btn-sm btn-ghost" aria-expanded="false" aria-controls="jsonOutputWrap">
+              Show JSON
+            </button>
             <button id="copyBtn" class="btn btn-sm btn-ghost">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <rect x="5" y="5" width="9" height="9" rx="1.5"/>
@@ -164,7 +167,7 @@
             </button>
           </div>
         </div>
-        <div class="json-output-wrap">
+        <div id="jsonOutputWrap" class="json-output-wrap">
           <pre id="jsonOutput" class="json-output"></pre>
         </div>
       </div>
@@ -191,6 +194,8 @@
         <!-- ─ Source configuration ─ -->
         <div class="form-section">
           <div class="form-section-title">Source Configuration</div>
+
+          <div id="srcPreTypeFields"></div>
 
           <div class="form-row-2">
             <div class="form-group">
