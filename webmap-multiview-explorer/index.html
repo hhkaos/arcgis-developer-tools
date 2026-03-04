@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Create an app with composite views | Sample | ArcGIS Maps SDK for JavaScript</title>
+
+    <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+    <script type="module" src="https://js.arcgis.com/5.0/"></script>
+
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      .app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100%;
+        background: #f5f5f5;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 12px;
+        background: white;
+        border-bottom: 1px solid #e5e5e5;
+      }
+
+      #item-id-input {
+        flex: 1;
+        min-width: 0;
+        padding: 8px 10px;
+        border: 1px solid #c7c7c7;
+      }
+
+      #load-map-btn {
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        cursor: pointer;
+      }
+
+      .map-grid {
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+        height: 100%;
+        box-sizing: border-box;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
+      }
+
+      #main-view-element {
+        grid-column: 1 / -1;
+        grid-row: 1;
+      }
+
+      #zoom-view-1,
+      #zoom-view-2,
+      #zoom-view-3 {
+        grid-row: 2;
+      }
+
+      #zoom-view-1 {
+        grid-column: 1;
+      }
+
+      #zoom-view-2 {
+        grid-column: 2;
+      }
+
+      #zoom-view-3 {
+        grid-column: 3;
+      }
+
+      arcgis-map {
+        background-color: white;
+        min-height: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <div class="toolbar">
+        <input id="item-id-input" type="text" value="f2e9b762544945f390ca4ac3671cfa72" placeholder="Enter ArcGIS WebMap item ID" />
+        <button id="load-map-btn" type="button">Load map</button>
+      </div>
+
+      <div class="map-grid">
+        <arcgis-map id="main-view-element"></arcgis-map>
+        <arcgis-map id="zoom-view-1"></arcgis-map>
+        <arcgis-map id="zoom-view-2"></arcgis-map>
+        <arcgis-map id="zoom-view-3"></arcgis-map>
+      </div>
+    </div>
+
+    <script type="module">
+      const [WebMap] = await $arcgis.import(["@arcgis/core/WebMap.js"]);
+
+      const mainViewElement = document.getElementById("main-view-element");
+      const zoomView1 = document.getElementById("zoom-view-1");
+      const zoomView2 = document.getElementById("zoom-view-2");
+      const zoomView3 = document.getElementById("zoom-view-3");
+      const itemIdInput = document.getElementById("item-id-input");
+      const loadMapBtn = document.getElementById("load-map-btn");
+
+      const viewElements = [mainViewElement, zoomView1, zoomView2, zoomView3];
+
+      // Wait for component methods/views to be available.
+      await Promise.all(viewElements.map((viewElement) => viewElement.componentOnReady()));
+
+      const createWebMap = (itemId) => {
+        return new WebMap({
+          portalItem: { id: itemId },
+        });
+      };
+
+      const setInitialZoomLevels = async () => {
+        await Promise.all(viewElements.map((viewElement) => viewElement.viewOnReady()));
+
+        const mainCenter = mainViewElement.view.center.clone();
+        const mainZoom = 1;
+
+        await Promise.all([
+          zoomView1.view.goTo({ center: mainCenter, zoom: 5 }),
+          zoomView2.view.goTo({ center: mainCenter, zoom: 9 }),
+          zoomView3.view.goTo({ center: mainCenter, zoom: 14 }),
+        ]);
+      };
+
+      const loadWebMap = async () => {
+        const itemId = itemIdInput.value.trim();
+        if (!itemId) return;
+
+        loadMapBtn.disabled = true;
+        loadMapBtn.textContent = "Loading...";
+
+        try {
+          const maps = viewElements.map(() => createWebMap(itemId));
+          [mainViewElement.map, zoomView1.map, zoomView2.map, zoomView3.map] = maps;
+
+          await maps[0].load();
+          await setInitialZoomLevels();
+        } catch (error) {
+          console.error("Unable to load webmap item:", error);
+        } finally {
+          loadMapBtn.disabled = false;
+          loadMapBtn.textContent = "Load map";
+        }
+      };
+
+      loadMapBtn.addEventListener("click", loadWebMap);
+
+      await loadWebMap();
+    </script>
+  </body>
+</html>
