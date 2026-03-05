@@ -65,7 +65,8 @@ const ICON_LAYERS = `<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="t
 function makeChip(iconSvg, tooltip) {
   const chip = document.createElement("span");
   chip.className = "feature-chip";
-  chip.dataset.tooltip = tooltip;
+  chip.title = tooltip;
+  chip.setAttribute("aria-label", tooltip);
   chip.innerHTML = iconSvg;
   return chip;
 }
@@ -95,13 +96,13 @@ export function renderGallery(container, examples, onSelect) {
         chipBar.append(makeChip(ICON_EFFECTS, `Effects: ${effectNames.join(", ")}`));
       }
       if (blendModes.length > 0) {
-        chipBar.append(makeChip(ICON_BLEND, `Blending: ${blendModes.join(", ")}`));
+        chipBar.append(makeChip(ICON_BLEND, `Blend modes: ${blendModes.join(", ")}`));
       }
       if (hasGroupLayers || hasOperationalLayers) {
         const parts = [];
         if (hasGroupLayers) parts.push("group layers");
         if (hasOperationalLayers) parts.push("operational layers");
-        chipBar.append(makeChip(ICON_LAYERS, `Supplemental: ${parts.join(", ")}`));
+        chipBar.append(makeChip(ICON_LAYERS, `Supplemental layers: ${parts.join(", ")}`));
       }
     });
 

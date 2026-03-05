@@ -65,27 +65,3 @@ calcite-card {
   width: 14px;
   height: 14px;
 }
-
-.feature-chip::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 5px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.9);
-  color: #fff;
-  font-size: 11px;
-  font-family: sans-serif;
-  line-height: 1.4;
-  padding: 3px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.1s;
-  z-index: 10;
-}
-
-.feature-chip:hover::after {
-  opacity: 1;
-}

@@ -180,5 +180,61 @@
     "description": "",
     "primaryBasemap": "",
     "webmapId": "9de7c320c3ae44a88e75a6e540d8ab51"
+  },
+  {
+    "id": "boundaries",
+    "title": "Boundaries",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "89b4af3c2c734acb8a5033744bdf3ca1"
+  },
+  {
+    "id": "imagery-transition",
+    "title": "Imagery Transition",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "0f31140623f9401e8c189a497f234dda"
+  },
+  {
+    "id": "physical-geography",
+    "title": "Physical Geography",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "7792f1cccf8643f28d35531e1292791c"
+  },
+  {
+    "id": "physical-geography-dark",
+    "title": "Physical Geography Dark",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "a8fe4faa68354fb3b905e34ed106400b"
+  },
+  {
+    "id": "mid-tone-basemap",
+    "title": "Mid-Tone Basemap",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "6acd8948975c48cea2bafb4117c0cd9b"
+  },
+  {
+    "id": "accessible-gray",
+    "title": "Accessible Gray",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "64d70a0e9d4646fcacb5469dcf0e7634"
+  },
+  {
+    "id": "sepiad-human-geography",
+    "title": "Sepia'd Human Geography",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "8f08b8b54e364f0aa486dfa3aac63e8d"
+  },
+  {
+    "id": "bloom-grayscale",
+    "title": "Bloom Grayscale",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "57800d1356b043ffbd66dd756eb7295f"
   }
 ]
