@@ -70,8 +70,7 @@ jobs:
           cp blend-modes-explorer/dist/index.html _site/blend-modes-explorer/index.html
           cp -R blend-modes-explorer/dist/assets _site/blend-modes-explorer/assets
 
-          cp layer-palette/dist/index.html _site/layer-palette/index.html
-          cp -R layer-palette/dist/assets _site/layer-palette/assets
+          cp -R layer-palette/dist/. _site/layer-palette/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
