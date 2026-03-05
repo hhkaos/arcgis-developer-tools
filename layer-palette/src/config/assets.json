@@ -216,7 +216,11 @@
     },
     {
       "id": "7b19a92d0c984a4da2e06889c2b4ea89",
-      "categories": ["decoration"]
+      "categories": ["contours-boundaries", "decoration"]
+    },
+    {
+      "id": "5ee596c843ba4b56971bae0ff017acb5",
+      "categories": ["contours-boundaries", "decoration"]
     },
     {
       "id": "_external_global-hexbins",
