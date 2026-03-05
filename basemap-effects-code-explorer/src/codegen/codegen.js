@@ -9,6 +9,17 @@ const LAYER_TYPE_TO_CLASS = {
   "wmts": "WMTSLayer",
   "wcs": "WCSLayer",
   "group": "GroupLayer",
+  // Operational layer types
+  "feature": "FeatureLayer",
+  "map-image": "MapImageLayer",
+  "imagery": "ImageryLayer",
+  "geojson": "GeoJSONLayer",
+  "csv": "CSVLayer",
+  "kml": "KMLLayer",
+  "wfs": "WFSLayer",
+  "wms": "WMSLayer",
+  "stream": "StreamLayer",
+  "ogc-feature": "OGCFeatureLayer",
 };
 
 const CLASS_TO_MODULE = {
@@ -20,6 +31,16 @@ const CLASS_TO_MODULE = {
   WMTSLayer: "@arcgis/core/layers/WMTSLayer.js",
   WCSLayer: "@arcgis/core/layers/WCSLayer.js",
   GroupLayer: "@arcgis/core/layers/GroupLayer.js",
+  FeatureLayer: "@arcgis/core/layers/FeatureLayer.js",
+  MapImageLayer: "@arcgis/core/layers/MapImageLayer.js",
+  ImageryLayer: "@arcgis/core/layers/ImageryLayer.js",
+  GeoJSONLayer: "@arcgis/core/layers/GeoJSONLayer.js",
+  CSVLayer: "@arcgis/core/layers/CSVLayer.js",
+  KMLLayer: "@arcgis/core/layers/KMLLayer.js",
+  WFSLayer: "@arcgis/core/layers/WFSLayer.js",
+  WMSLayer: "@arcgis/core/layers/WMSLayer.js",
+  StreamLayer: "@arcgis/core/layers/StreamLayer.js",
+  OGCFeatureLayer: "@arcgis/core/layers/OGCFeatureLayer.js",
 };
 
 function effectObjectToCSS(e) {
@@ -62,74 +83,94 @@ export function scaleToAltitude(scale) {
   return Math.round((scale / 1000) * 180);
 }
 
-function layerToLines(layer, mode) {
+function layerToLines(layer, mode, indent = "  ") {
+  const p = `${indent}  `; // property indent
   const className = LAYER_TYPE_TO_CLASS[layer.type] ?? "TileLayer";
   const lines = [];
   const itemUrl = layer.portalItem?.id
     ? ` — https://www.arcgis.com/home/item.html?id=${layer.portalItem.id}`
     : "";
-  lines.push(`  // ${layer.title ?? layer.id}${itemUrl}`);
-  lines.push(`  new ${className}({`);
+  lines.push(`${indent}// ${layer.title ?? layer.id}${itemUrl}`);
+  lines.push(`${indent}new ${className}({`);
 
   if (layer.url) {
-    lines.push(`    url: ${JSON.stringify(layer.url)},`);
+    lines.push(`${p}url: ${JSON.stringify(layer.url)},`);
   } else if (layer.portalItem?.id) {
-    lines.push(`    portalItem: { id: ${JSON.stringify(layer.portalItem.id)} },`);
+    lines.push(`${p}portalItem: { id: ${JSON.stringify(layer.portalItem.id)} },`);
   }
 
   if (layer.blendMode && layer.blendMode !== "normal") {
     if (mode === "3d" && !BLEND_MODE_SUPPORTED_3D_TYPES.has(layer.type)) {
-      lines.push(`    // blendMode: "${layer.blendMode}" — not supported for ${className} in SceneView — omitted`);
+      lines.push(`${p}// blendMode: "${layer.blendMode}" — not supported for ${className} in SceneView — omitted`);
     } else {
-      lines.push(`    blendMode: "${layer.blendMode}",`);
+      lines.push(`${p}blendMode: "${layer.blendMode}",`);
     }
   }
 
   if (layer.opacity !== undefined && layer.opacity !== 1) {
-    lines.push(`    opacity: ${layer.opacity},`);
+    lines.push(`${p}opacity: ${layer.opacity},`);
   }
 
   if (layer.effect) {
     if (mode === "3d") {
-      lines.push(`    // effect: ${serializeEffect(layer.effect)} — not supported in SceneView — omitted`);
+      lines.push(`${p}// effect: ${serializeEffect(layer.effect)} — not supported in SceneView — omitted`);
     } else if (typeof layer.effect === "string") {
-      lines.push(`    effect: ${JSON.stringify(layer.effect)},`);
+      lines.push(`${p}effect: ${JSON.stringify(layer.effect)},`);
     } else if (isScaleDependent(layer.effect)) {
-      lines.push(`    effect: [`);
+      lines.push(`${p}effect: [`);
       for (const e of layer.effect) {
-        lines.push(`      { scale: ${e.scale}, value: ${JSON.stringify(e.value)} },`);
+        lines.push(`${p}  { scale: ${e.scale}, value: ${JSON.stringify(e.value)} },`);
       }
-      lines.push(`    ],`);
+      lines.push(`${p}],`);
     } else if (Array.isArray(layer.effect)) {
-      lines.push(`    effect: ${JSON.stringify(layer.effect.map(effectObjectToCSS).join(" "))},`);
+      lines.push(`${p}effect: ${JSON.stringify(layer.effect.map(effectObjectToCSS).join(" "))},`);
     }
   }
 
   if (layer.featureEffect && mode === "3d") {
-    lines.push(`    // featureEffect — not supported in SceneView — omitted`);
+    lines.push(`${p}// featureEffect — not supported in SceneView — omitted`);
   }
 
   if (mode === "2d") {
-    if (layer.minScale) lines.push(`    minScale: ${layer.minScale},`);
-    if (layer.maxScale) lines.push(`    maxScale: ${layer.maxScale},`);
+    if (layer.minScale) lines.push(`${p}minScale: ${layer.minScale},`);
+    if (layer.maxScale) lines.push(`${p}maxScale: ${layer.maxScale},`);
   } else if (layer.minScale || layer.maxScale) {
-    lines.push(`    // Visible range (minScale/maxScale) not applicable in SceneView.`);
+    lines.push(`${p}// Visible range (minScale/maxScale) not applicable in SceneView.`);
     if (layer.minScale) {
-      lines.push(`    // minScale: ${layer.minScale} ≈ ${scaleToAltitude(layer.minScale)} m altitude (rough equatorial estimate)`);
+      lines.push(`${p}// minScale: ${layer.minScale} ≈ ${scaleToAltitude(layer.minScale)} m altitude (rough equatorial estimate)`);
     }
     if (layer.maxScale) {
-      lines.push(`    // maxScale: ${layer.maxScale} ≈ ${scaleToAltitude(layer.maxScale)} m altitude (rough equatorial estimate)`);
+      lines.push(`${p}// maxScale: ${layer.maxScale} ≈ ${scaleToAltitude(layer.maxScale)} m altitude (rough equatorial estimate)`);
     }
   }
 
-  lines.push(`  }),`);
+  if (layer.type === "group" && layer.layers?.length > 0) {
+    lines.push(`${p}layers: [`);
+    for (const child of layer.layers.toArray()) {
+      lines.push(...layerToLines(child, mode, `${p}  `));
+    }
+    lines.push(`${p}],`);
+  }
+
+  lines.push(`${indent}}),`);
   return lines;
 }
 
-export function generateSnippet(baseLayers, referenceLayers, mode) {
-  const allLayers = [...baseLayers, ...referenceLayers];
+function flattenAllLayers(layers) {
+  const result = [];
+  for (const l of layers) {
+    result.push(l);
+    if (l.type === "group" && l.layers?.length > 0) {
+      result.push(...flattenAllLayers(l.layers.toArray()));
+    }
+  }
+  return result;
+}
+
+export function generateSnippet(baseLayers, referenceLayers, operationalLayers, mode) {
   const usedClasses = new Set(
-    allLayers.map((l) => LAYER_TYPE_TO_CLASS[l.type] ?? "TileLayer"),
+    flattenAllLayers([...baseLayers, ...referenceLayers, ...operationalLayers])
+      .map((l) => LAYER_TYPE_TO_CLASS[l.type] ?? "TileLayer"),
   );
 
   const importLines = [
@@ -160,7 +201,35 @@ export function generateSnippet(baseLayers, referenceLayers, mode) {
     ? "{ baseLayers, referenceLayers }"
     : "{ baseLayers }";
 
-  lines.push("", `const basemap = new Basemap(${basemapArgs});`, "// map.basemap = basemap;");
+  lines.push("", `const basemap = new Basemap(${basemapArgs});`);
+
+  if (operationalLayers.length > 0) {
+    lines.push(
+      "",
+      "// Operational layers",
+      "const operationalLayers = [",
+      ...operationalLayers.flatMap((layer) => layerToLines(layer, mode)),
+      "];",
+      "",
+      "// map.basemap = basemap;",
+      "// map.layers.addMany(operationalLayers);",
+    );
+  } else {
+    lines.push("// map.basemap = basemap;");
+  }
 
   return lines.join("\n");
+}
+
+export function generateWebMapIdSnippet(itemId) {
+  return [
+    `import WebMap from "@arcgis/core/WebMap.js";`,
+    `import MapView from "@arcgis/core/views/MapView.js";`,
+    "",
+    "const map = new WebMap({",
+    `  portalItem: { id: ${JSON.stringify(itemId)} },`,
+    "});",
+    "",
+    'const view = new MapView({ container: "viewDiv", map });',
+  ].join("\n");
 }

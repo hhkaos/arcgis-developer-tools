@@ -173,5 +173,12 @@
     "description": "",
     "primaryBasemap": "",
     "webmapId": "0559734c8fd34772aabf34b95ae1e5ee"
+  },
+  {
+    "id": "dramatic-portrait-mode",
+    "title": "Dramatic Portrait Mode",
+    "description": "",
+    "primaryBasemap": "",
+    "webmapId": "9de7c320c3ae44a88e75a6e540d8ab51"
   }
 ]

@@ -14,10 +14,80 @@
     body {
       height: 100%;
     }
+    #split-layout {
+      display: flex;
+      height: 100%;
+      overflow: hidden;
+    }
+    #gallery-side {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+    #gallery-side calcite-panel {
+      height: 100%;
+    }
+    #resize-handle {
+      width: 10px;
+      background: var(--calcite-color-border-2);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.15s;
+    }
+    #resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 40px;
+      border-radius: 2px;
+      background: var(--calcite-color-text-3);
+      transition: background 0.15s, height 0.15s;
+    }
+    #resize-handle:hover,
+    #resize-handle.is-resizing {
+      background: color-mix(in srgb, var(--calcite-color-brand) 15%, var(--calcite-color-border-2));
+    }
+    #resize-handle:hover::after,
+    #resize-handle.is-resizing::after {
+      background: var(--calcite-color-brand);
+      height: 64px;
+    }
+    #map-side {
+      flex: 0 0 50%;
+      min-width: 20%;
+      max-width: 80%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #map-side[hidden],
+    #resize-handle[hidden] {
+      display: none;
+    }
+    #map-side-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0 0.75rem;
+      border-bottom: 1px solid var(--calcite-color-border-1);
+      background: var(--calcite-color-background);
+      flex-shrink: 0;
+      min-height: 3rem;
+    }
+    #map-side-title {
+      flex: 1;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--calcite-color-text-1);
+    }
     #view-container {
       position: relative;
-      width: 100%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
       overflow: hidden;
     }
     arcgis-map,
@@ -30,7 +100,7 @@
     .view--active {
       visibility: visible;
     }
-    #view-toggle{
+    #view-toggle {
       margin-right: 1rem;
     }
     #scene-limitations-notice {
@@ -51,6 +121,25 @@
       --calcite-button-text-color: white;
       --calcite-button-border-color: white;
     }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--calcite-color-border-1) var(--calcite-color-background);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--calcite-color-background);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--calcite-color-border-1);
+      border-radius: 4px;
+      border: 2px solid var(--calcite-color-background);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--calcite-color-text-3);
+    }
   </style>
 </head>
 <body class="calcite-mode-dark">
@@ -69,44 +158,54 @@
     </calcite-segmented-control>
   </calcite-navigation>
   
-  <calcite-shell-panel slot="panel-start" id="shell-panel-start">
-    <calcite-panel id="gallery-panel" heading="Gallery">
-      <div id="gallery-container">
-        <div id="load-by-id">
-          <calcite-input-text id="webmap-id-input" placeholder="Paste item ID or ArcGIS Online URL" clearable></calcite-input-text>
-          <calcite-button id="load-by-id-btn" scale="m" icon-start="layer-basemap">Load</calcite-button>
+  <div id="split-layout">
+    <div id="gallery-side">
+      <calcite-panel id="gallery-panel">
+        <div id="gallery-container">
+          <div id="load-by-id">
+            <calcite-input-text id="webmap-id-input" placeholder="Paste item ID or ArcGIS Online URL" clearable></calcite-input-text>
+            <calcite-button id="load-by-id-btn" scale="m" icon-start="layer-basemap">Load</calcite-button>
+          </div>
+          <calcite-notice id="load-notice" kind="danger" closable>
+            <div slot="message" id="load-notice-message"></div>
+          </calcite-notice>
         </div>
-        <calcite-notice id="load-notice" kind="danger" closable>
-          <div slot="message" id="load-notice-message"></div>
+      </calcite-panel>
+    </div>
+
+    <div id="resize-handle" hidden></div>
+
+    <div id="map-side" hidden>
+      <div id="map-side-header">
+        <span id="map-side-title">Map Preview</span>
+        <calcite-button id="map-side-close" icon-start="x" appearance="outline-fill" scale="s">Close</calcite-button>
+      </div>
+      <div id="view-container">
+        <arcgis-map id="mapView" class="view--active">
+          <div slot="top-right" class="view-links">
+            <calcite-button id="default-extent-btn-2d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
+            <calcite-button id="multiscale-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="dashboard">Multi-scale view</calcite-button>
+            <calcite-button id="show-code-btn-2d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
+            <calcite-button id="map-viewer-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
+            <calcite-button id="item-details-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
+          </div>
+        </arcgis-map>
+        <arcgis-scene id="sceneView" ground="world-elevation">
+          <div slot="top-right" class="view-links">
+            <calcite-button id="default-extent-btn-3d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
+            <calcite-button id="multiscale-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="dashboard">Multi-scale view</calcite-button>
+            <calcite-button id="show-code-btn-3d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
+            <calcite-button id="map-viewer-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
+            <calcite-button id="item-details-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
+          </div>
+        </arcgis-scene>
+        <calcite-notice id="scene-limitations-notice" kind="warning" closable>
+          <span slot="title">Some visual properties are not fully supported in 3D</span>
+          <div slot="message" id="scene-limitations-message"></div>
+          <calcite-link slot="link" id="scene-limitations-learn-more" href="#">Learn more about 3D rendering limitations</calcite-link>
         </calcite-notice>
       </div>
-    </calcite-panel>
-  </calcite-shell-panel>
-  
-  <div id="view-container">
-    <arcgis-map id="mapView" class="view--active">
-      <div slot="top-right" class="view-links">
-        <calcite-button id="default-extent-btn-2d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
-        <calcite-button id="multiscale-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="dashboard">Multi-scale view</calcite-button>
-        <calcite-button id="show-code-btn-2d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
-        <calcite-button id="map-viewer-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
-        <calcite-button id="item-details-link-2d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
-      </div>
-    </arcgis-map>
-    <arcgis-scene id="sceneView" ground="world-elevation">
-      <div slot="top-right" class="view-links">
-        <calcite-button id="default-extent-btn-3d" appearance="outline-fill" scale="m" icon-start="zoom-to-object">Default extent</calcite-button>
-        <calcite-button id="multiscale-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="dashboard">Multi-scale view</calcite-button>
-        <calcite-button id="show-code-btn-3d" appearance="outline-fill" scale="m" icon-start="code">Code</calcite-button>
-        <calcite-button id="map-viewer-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="launch">Map Viewer</calcite-button>
-        <calcite-button id="item-details-link-3d" href="#" target="_blank" rel="noopener" appearance="outline-fill" scale="m" icon-start="information">Item Details</calcite-button>
-      </div>
-    </arcgis-scene>
-    <calcite-notice id="scene-limitations-notice" kind="warning" closable>
-      <span slot="title">Some visual properties are not fully supported in 3D</span>
-      <div slot="message" id="scene-limitations-message"></div>
-      <calcite-link slot="link" id="scene-limitations-learn-more" href="#">Learn more about 3D rendering limitations</calcite-link>
-    </calcite-notice>
+    </div>
   </div>
 </calcite-shell>
 <calcite-dialog id="scene-limitations-modal" heading="Visual Effects in 3D — ArcGIS Maps SDK 5.0" modal scale="m">
@@ -144,6 +243,10 @@
   <calcite-button slot="footer" id="scene-limitations-modal-close">Close</calcite-button>
 </calcite-dialog>
 <calcite-dialog id="code-modal" heading="Code" modal scale="l">
+  <div id="code-tab-bar" hidden>
+    <button class="code-tab active" data-tab="by-id">With Item ID</button>
+    <button class="code-tab" data-tab="manual">Manually</button>
+  </div>
   <div id="code-modal-content">
     <pre><code id="code-output" class="language-javascript"></code></pre>
   </div>

@@ -1,3 +1,29 @@
+#code-modal {
+  --calcite-dialog-size-x: min(960px, calc(100vw - 2rem));
+}
+
+#code-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--calcite-color-border-3);
+  margin-bottom: 0;
+}
+
+.code-tab {
+  padding: 0.5rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--calcite-color-text-3);
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.code-tab.active {
+  border-bottom-color: var(--calcite-color-brand);
+  color: var(--calcite-color-text-1);
+}
+
 #code-modal-content {
   max-height: min(70vh, 44rem);
   overflow-y: auto;

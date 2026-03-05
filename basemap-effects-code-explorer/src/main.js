@@ -44,12 +44,61 @@ const defaultExtentBtn2DEl = document.getElementById("default-extent-btn-2d");
 const defaultExtentBtn3DEl = document.getElementById("default-extent-btn-3d");
 const showCodeBtn2DEl = document.getElementById("show-code-btn-2d");
 const showCodeBtn3DEl = document.getElementById("show-code-btn-3d");
+const splitLayoutEl = document.getElementById("split-layout");
+const mapSideEl = document.getElementById("map-side");
+const resizeHandleEl = document.getElementById("resize-handle");
+const mapSideCloseEl = document.getElementById("map-side-close");
+const mapSideTitleEl = document.getElementById("map-side-title");
 
 let activeTab = "2d";
 let activeWebmap = null;
 let defaultExtentTarget = null;
 
 viewToggle.disabled = true;
+
+const PANEL_WIDTH_KEY = "basemap-explorer-map-panel-width";
+
+function openMapPanel() {
+  if (mapSideEl.hidden) {
+    const layoutWidth = splitLayoutEl.getBoundingClientRect().width;
+    if (layoutWidth > 0) {
+      const saved = localStorage.getItem(PANEL_WIDTH_KEY);
+      const targetWidth = saved
+        ? Math.min(Math.max(Number(saved), layoutWidth * 0.2), layoutWidth * 0.8)
+        : Math.round(layoutWidth * 0.75);
+      mapSideEl.style.flex = `0 0 ${targetWidth}px`;
+    }
+    mapSideEl.hidden = false;
+    resizeHandleEl.hidden = false;
+  }
+}
+
+function closeMapPanel() {
+  mapSideEl.hidden = true;
+  resizeHandleEl.hidden = true;
+}
+
+mapSideCloseEl.addEventListener("click", closeMapPanel);
+
+let isResizing = false;
+resizeHandleEl.addEventListener("pointerdown", (e) => {
+  isResizing = true;
+  resizeHandleEl.setPointerCapture(e.pointerId);
+  resizeHandleEl.classList.add("is-resizing");
+});
+resizeHandleEl.addEventListener("pointermove", (e) => {
+  if (!isResizing) return;
+  const rect = splitLayoutEl.getBoundingClientRect();
+  const newWidth = rect.right - e.clientX;
+  const min = rect.width * 0.2;
+  const max = rect.width * 0.8;
+  mapSideEl.style.flex = `0 0 ${Math.min(Math.max(newWidth, min), max)}px`;
+});
+resizeHandleEl.addEventListener("pointerup", () => {
+  isResizing = false;
+  resizeHandleEl.classList.remove("is-resizing");
+  localStorage.setItem(PANEL_WIDTH_KEY, String(mapSideEl.getBoundingClientRect().width));
+});
 
 sceneLimitationsLearnMore.addEventListener("click", (e) => {
   e.preventDefault();
@@ -160,6 +209,7 @@ async function loadWebmap(rawInput) {
     return;
   }
 
+  openMapPanel();
   viewToggle.disabled = true;
   hideBanner();
 
@@ -182,9 +232,7 @@ async function loadWebmap(rawInput) {
     return;
   }
 
-  if (warnIfOperationalLayers(webmap)) {
-    showBanner("This webmap has operational layers — only the basemap is shown.", "warning");
-  }
+  mapSideTitleEl.textContent = `${webmap.portalItem.title} preview`;
 
   const savedWebmapTarget = webmap.initialViewProperties?.viewpoint?.targetGeometry?.clone() ?? null;
 
@@ -215,14 +263,12 @@ async function loadWebmap(rawInput) {
     renderCodeModal(activeWebmap, activeTab);
   }
 
-  if (!warnIfOperationalLayers(webmap)) {
-    const baseLayers = [
-      ...webmap.basemap.baseLayers.toArray(),
-      ...(webmap.basemap.referenceLayers?.toArray() ?? []),
-    ];
-    if (!hasEffects(baseLayers)) {
-      showBanner("This webmap has no effects applied to basemap layers.", "info");
-    }
+  const baseLayers = [
+    ...webmap.basemap.baseLayers.toArray(),
+    ...(webmap.basemap.referenceLayers?.toArray() ?? []),
+  ];
+  if (!hasEffects(baseLayers)) {
+    showBanner("This webmap has no effects applied to basemap layers.", "info");
   }
 
   viewToggle.disabled = false;
@@ -236,8 +282,6 @@ async function init() {
   webmapIdInputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter") loadWebmap(webmapIdInputEl.value);
   });
-
-  await loadWebmap(examples[0].webmapId);
 }
 
 init();
