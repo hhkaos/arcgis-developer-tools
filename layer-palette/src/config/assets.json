@@ -176,6 +176,10 @@
       "categories": ["contours-boundaries"]
     },
     {
+      "id": "3cedfc19d7b941d89ee15b0e2f454070",
+      "categories": ["contours-boundaries"]
+    },
+    {
       "id": "_external_boundaries",
       "categories": ["contours-boundaries"],
       "hardcoded": {

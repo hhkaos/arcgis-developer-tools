@@ -1,5 +1,9 @@
 import "./style.css";
 import assetsConfig from "./config/assets.json";
+
+const PLACEHOLDER_MISSING_URL = `${import.meta.env.BASE_URL}placeholder-missing.png`;
+const PLACEHOLDER_EXTERNAL_URL = `${import.meta.env.BASE_URL}placeholder-external.png`;
+window.__PLACEHOLDER_MISSING_URL = PLACEHOLDER_MISSING_URL;
 import { fetchItemMetadata, fetchAllMetadata, getItemPageUrl, getMapViewerUrl } from "./api.js";
 import { invalidateAllCache, getCacheAge } from "./cache.js";
 
@@ -401,13 +405,13 @@ function renderCard(item) {
         alt="${title}"
         class="w-full h-full object-cover"
         loading="lazy"
-        onerror="this.src='/placeholder-missing.png';this.className='w-full h-full object-cover'"
+        onerror="this.src=window.__PLACEHOLDER_MISSING_URL;this.className='w-full h-full object-cover'"
       />
     `;
   } else {
     thumbSection.innerHTML = `
       <img
-        src="${isExternal ? "/placeholder-external.png" : "/placeholder-missing.png"}"
+        src="${isExternal ? PLACEHOLDER_EXTERNAL_URL : PLACEHOLDER_MISSING_URL}"
         alt="${isExternal ? "External resource" : "No thumbnail"}"
         class="w-full h-full object-cover"
         loading="lazy"
@@ -536,7 +540,7 @@ function renderMissingResourceCard({ compact = false } = {}) {
     const thumbSection = document.createElement("div");
     thumbSection.className = "relative bg-blue-50 aspect-video flex items-center justify-center overflow-hidden";
     thumbSection.innerHTML = `
-      <img src="/placeholder-missing.png" alt="Missing resource"
+      <img src="${PLACEHOLDER_MISSING_URL}" alt="Missing resource"
         class="w-full h-full object-cover opacity-80" />
     `;
     card.appendChild(thumbSection);
@@ -616,7 +620,7 @@ function renderMissingResourceCard({ compact = false } = {}) {
     const thumb = document.createElement("div");
     thumb.className = "relative bg-blue-50 w-full h-32 overflow-hidden";
     thumb.innerHTML = `
-      <img src="/placeholder-missing.png" alt="Missing resource"
+      <img src="${PLACEHOLDER_MISSING_URL}" alt="Missing resource"
         class="w-full h-full object-cover opacity-70" />
     `;
     card.appendChild(thumb);
