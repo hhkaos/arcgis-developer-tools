@@ -167,7 +167,7 @@ function flattenAllLayers(layers) {
   return result;
 }
 
-export function generateSnippet(baseLayers, referenceLayers, operationalLayers, mode) {
+export function generateSnippet(baseLayers, referenceLayers, operationalLayers, mode, background) {
   const usedClasses = new Set(
     flattenAllLayers([...baseLayers, ...referenceLayers, ...operationalLayers])
       .map((l) => LAYER_TYPE_TO_CLASS[l.type] ?? "TileLayer"),
@@ -179,6 +179,10 @@ export function generateSnippet(baseLayers, referenceLayers, operationalLayers, 
     ),
     `import Basemap from "@arcgis/core/Basemap.js";`,
   ];
+
+  if (background?.color && mode === "2d") {
+    importLines.push(`import ColorBackground from "@arcgis/core/webdoc/support/ColorBackground.js";`);
+  }
 
   const lines = [
     ...importLines,
@@ -218,6 +222,17 @@ export function generateSnippet(baseLayers, referenceLayers, operationalLayers, 
     lines.push("// map.basemap = basemap;");
   }
 
+  if (background?.color) {
+    const { r, g, b, a } = background.color;
+    if (mode === "2d") {
+      const colorArr = [Math.round(r), Math.round(g), Math.round(b), a];
+      lines.push(`view.background = new ColorBackground({ color: ${JSON.stringify(colorArr)} });`);
+    } else {
+      const colorArr = [Math.round(r), Math.round(g), Math.round(b)];
+      lines.push(`view.ground.surfaceColor = ${JSON.stringify(colorArr)};`);
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -231,5 +246,18 @@ export function generateWebMapIdSnippet(itemId) {
     "});",
     "",
     'const view = new MapView({ container: "viewDiv", map });',
+  ].join("\n");
+}
+
+export function generateWebSceneIdSnippet(itemId) {
+  return [
+    `import WebScene from "@arcgis/core/WebScene.js";`,
+    `import SceneView from "@arcgis/core/views/SceneView.js";`,
+    "",
+    "const map = new WebScene({",
+    `  portalItem: { id: ${JSON.stringify(itemId)} },`,
+    "});",
+    "",
+    'const view = new SceneView({ container: "viewDiv", map });',
   ].join("\n");
 }

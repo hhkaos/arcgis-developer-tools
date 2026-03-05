@@ -24,6 +24,11 @@
   color: var(--calcite-color-text-1);
 }
 
+.code-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 #code-modal-content {
   max-height: min(70vh, 44rem);
   overflow-y: auto;

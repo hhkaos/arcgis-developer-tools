@@ -1,7 +1,7 @@
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import "highlight.js/styles/github-dark.css";
-import { generateSnippet, generateWebMapIdSnippet } from "../codegen/codegen.js";
+import { generateSnippet, generateWebMapIdSnippet, generateWebSceneIdSnippet } from "../codegen/codegen.js";
 
 hljs.registerLanguage("javascript", javascript);
 
@@ -11,6 +11,7 @@ const copyBtnEl = document.getElementById("copy-btn");
 const codeModalCloseEl = document.getElementById("code-modal-close");
 const codeTabBarEl = document.getElementById("code-tab-bar");
 const codeTabEls = codeTabBarEl.querySelectorAll(".code-tab");
+const byIdTabEl = codeTabBarEl.querySelector('[data-tab="by-id"]');
 
 let activeCodeTab = "by-id";
 let cachedSnippets = null; // { byId: string, manual: string } | null
@@ -27,7 +28,7 @@ function showTab(tab) {
   setCodeContent(tab === "by-id" ? cachedSnippets.byId : cachedSnippets.manual);
 }
 
-export function renderCodeModal(webmap, mode) {
+export function renderCodeModal(webmap, mode, viewBackground) {
   if (!webmap?.basemap?.baseLayers) {
     setCodeContent("// No webmap loaded yet.");
     codeTabBarEl.hidden = true;
@@ -44,22 +45,33 @@ export function renderCodeModal(webmap, mode) {
     return;
   }
 
-  const manualSnippet = generateSnippet(baseLayers, referenceLayers, operationalLayers, mode);
-  const itemId = mode === "2d" ? webmap.portalItem?.id : null;
+  const manualSnippet = generateSnippet(baseLayers, referenceLayers, operationalLayers, mode, viewBackground);
+  const itemId = webmap.portalItem?.id ?? null;
+  const itemType = webmap.portalItem?.type;
+  const showItemIdTab =
+    (mode === "2d" && itemType === "Web Map") ||
+    (mode === "3d" && itemType === "Web Scene");
 
-  if (itemId) {
-    cachedSnippets = { byId: generateWebMapIdSnippet(itemId), manual: manualSnippet };
+  if (itemId && showItemIdTab) {
+    const idSnippet = mode === "3d"
+      ? generateWebSceneIdSnippet(itemId)
+      : generateWebMapIdSnippet(itemId);
+    cachedSnippets = { byId: idSnippet, manual: manualSnippet };
+    byIdTabEl.disabled = false;
     codeTabBarEl.hidden = false;
     showTab(activeCodeTab);
   } else {
-    cachedSnippets = null;
-    codeTabBarEl.hidden = true;
+    cachedSnippets = { byId: null, manual: manualSnippet };
+    byIdTabEl.disabled = true;
+    codeTabBarEl.hidden = false;
+    // Activate "Manually" without changing activeCodeTab so switching back restores the user's choice
+    codeTabEls.forEach((el) => el.classList.toggle("active", el.dataset.tab === "manual"));
     setCodeContent(manualSnippet);
   }
 }
 
-export function openCodeModal(webmap, mode) {
-  renderCodeModal(webmap, mode);
+export function openCodeModal(webmap, mode, viewBackground) {
+  renderCodeModal(webmap, mode, viewBackground);
   codeModalEl.open = true;
 }
 

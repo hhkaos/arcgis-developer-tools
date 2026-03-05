@@ -11,6 +11,7 @@ export default [
         console: "readonly",
         document: "readonly",
         window: "readonly",
+        localStorage: "readonly",
         navigator: "readonly",
         AbortController: "readonly",
         Promise: "readonly",

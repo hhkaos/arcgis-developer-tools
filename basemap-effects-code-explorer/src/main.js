@@ -2,14 +2,13 @@ import "@esri/calcite-components/main.css";
 import "@esri/calcite-components/components/calcite-shell";
 import "@esri/calcite-components/components/calcite-navigation";
 import "@esri/calcite-components/components/calcite-navigation-logo";
-import "@esri/calcite-components/components/calcite-segmented-control";
-import "@esri/calcite-components/components/calcite-segmented-control-item";
 import "@esri/calcite-components/components/calcite-shell-panel";
 import "@esri/calcite-components/components/calcite-panel";
 import "@esri/calcite-components/components/calcite-card";
 import "@esri/calcite-components/components/calcite-card-group";
 import "@esri/calcite-components/components/calcite-notice";
 import "@esri/calcite-components/components/calcite-button";
+import "@esri/calcite-components/components/calcite-chip";
 import "@esri/calcite-components/components/calcite-link";
 import "@esri/calcite-components/components/calcite-dialog";
 import "@esri/calcite-components/components/calcite-input-text";
@@ -28,14 +27,17 @@ import examples from "../curated-examples.json";
 
 const mapEl = document.getElementById("mapView");
 const sceneEl = document.getElementById("sceneView");
-const viewToggle = document.getElementById("view-toggle");
+const viewToggleTo3DEl = document.getElementById("view-toggle-btn-2d");
+const viewToggleTo2DEl = document.getElementById("view-toggle-btn-3d");
 const galleryEl = document.getElementById("gallery-container");
 const sceneLimitationsNotice = document.getElementById("scene-limitations-notice");
 const sceneLimitationsMessage = document.getElementById("scene-limitations-message");
 const sceneLimitationsModal = document.getElementById("scene-limitations-modal");
 const sceneLimitationsLearnMore = document.getElementById("scene-limitations-learn-more");
 const codeModalEl = document.getElementById("code-modal");
-const navSearchEl = document.getElementById("nav-search");
+const alphaChipEl = document.getElementById("alpha-chip");
+const alphaModalEl = document.getElementById("alpha-modal");
+const alphaModalCloseEl = document.getElementById("alpha-modal-close");
 const webmapIdInputEl = document.getElementById("webmap-id-input");
 const loadByIdBtnEl = document.getElementById("load-by-id-btn");
 const loadNoticeEl = document.getElementById("load-notice");
@@ -52,11 +54,32 @@ const mapSideTitleEl = document.getElementById("map-side-title");
 
 let activeTab = "2d";
 let activeWebmap = null;
+let activeViewBackground = null;
 let defaultExtentTarget = null;
 
-viewToggle.disabled = true;
-
 const PANEL_WIDTH_KEY = "basemap-explorer-map-panel-width";
+
+function toRgbArray(background) {
+  const color = background?.color;
+  if (!color) return null;
+
+  return [
+    Math.round(color.r ?? 0),
+    Math.round(color.g ?? 0),
+    Math.round(color.b ?? 0),
+  ];
+}
+
+function syncSceneGroundSurfaceColorFromBackground(webmap, background) {
+  const surfaceColor = toRgbArray(background);
+  if (!webmap || !surfaceColor) return;
+
+  // Ground belongs to the map/webmap; set opaque surface color to avoid grid bleed-through.
+  webmap.ground = {
+    surfaceColor,
+    opacity: 1,
+  };
+}
 
 function openMapPanel() {
   if (mapSideEl.hidden) {
@@ -107,6 +130,12 @@ sceneLimitationsLearnMore.addEventListener("click", (e) => {
 
 document.getElementById("scene-limitations-modal-close").addEventListener("click", () => {
   sceneLimitationsModal.open = false;
+});
+alphaChipEl.addEventListener("click", () => {
+  alphaModalEl.open = true;
+});
+alphaModalCloseEl.addEventListener("click", () => {
+  alphaModalEl.open = false;
 });
 
 function showSceneLimitations({ layersWithEffect, layersWithFeatureEffect, layersWithUnsupportedBlendMode }) {
@@ -177,30 +206,30 @@ function updateViewLinks(itemId) {
 defaultExtentBtn2DEl.addEventListener("click", () => resetToDefaultExtent("2d"));
 defaultExtentBtn3DEl.addEventListener("click", () => resetToDefaultExtent("3d"));
 
-viewToggle.addEventListener("calciteSegmentedControlChange", (e) => {
-  const tab = e.target.value;
-  if (tab === activeTab) return;
-  activeTab = tab;
-  setState({ activeTab: tab });
-  if (tab === "3d") {
-    if (activeWebmap) {
-      showSceneLimitations(detectSceneViewLimitations(readBasemapLayers(activeWebmap)));
-    }
-    navSearchEl.referenceElement = sceneEl;
-    switchTo3D(mapEl, sceneEl);
-  } else {
-    hideSceneLimitations();
-    navSearchEl.referenceElement = mapEl;
-    switchTo2D(mapEl, sceneEl);
+viewToggleTo3DEl.addEventListener("click", () => {
+  activeTab = "3d";
+  setState({ activeTab: "3d" });
+  if (activeWebmap) {
+    showSceneLimitations(detectSceneViewLimitations(readBasemapLayers(activeWebmap)));
   }
-
+  switchTo3D(mapEl, sceneEl);
   if (codeModalEl.open) {
-    renderCodeModal(activeWebmap, activeTab);
+    renderCodeModal(activeWebmap, activeTab, activeViewBackground);
   }
 });
 
-showCodeBtn2DEl.addEventListener("click", () => openCodeModal(activeWebmap, activeTab));
-showCodeBtn3DEl.addEventListener("click", () => openCodeModal(activeWebmap, activeTab));
+viewToggleTo2DEl.addEventListener("click", () => {
+  activeTab = "2d";
+  setState({ activeTab: "2d" });
+  hideSceneLimitations();
+  switchTo2D(mapEl, sceneEl);
+  if (codeModalEl.open) {
+    renderCodeModal(activeWebmap, activeTab, activeViewBackground);
+  }
+});
+
+showCodeBtn2DEl.addEventListener("click", () => openCodeModal(activeWebmap, activeTab, activeViewBackground));
+showCodeBtn3DEl.addEventListener("click", () => openCodeModal(activeWebmap, activeTab, activeViewBackground));
 
 async function loadWebmap(rawInput) {
   const id = extractItemId(String(rawInput));
@@ -210,7 +239,6 @@ async function loadWebmap(rawInput) {
   }
 
   openMapPanel();
-  viewToggle.disabled = true;
   hideBanner();
 
   const savedCamera = activeTab === "3d" ? sceneEl.view?.camera : null;
@@ -222,13 +250,11 @@ async function loadWebmap(rawInput) {
     await webmap.load();
   } catch {
     showBanner("Webmap not found or not accessible.", "error");
-    viewToggle.disabled = false;
     return;
   }
 
   if (webmap.portalItem.type !== "Web Map") {
     showBanner("This item is not a Web Map.", "error");
-    viewToggle.disabled = false;
     return;
   }
 
@@ -241,6 +267,8 @@ async function loadWebmap(rawInput) {
   await Promise.all([mapEl.viewOnReady(), sceneEl.viewOnReady()]);
 
   defaultExtentTarget = savedWebmapTarget ?? mapEl.view?.extent?.clone() ?? null;
+  activeViewBackground = mapEl.view?.background ?? null;
+  syncSceneGroundSurfaceColorFromBackground(webmap, activeViewBackground);
 
   activeWebmap = webmap;
 
@@ -260,7 +288,7 @@ async function loadWebmap(rawInput) {
   setState({ activeWebmapId: id });
   setActiveCard(id);
   if (codeModalEl.open) {
-    renderCodeModal(activeWebmap, activeTab);
+    renderCodeModal(activeWebmap, activeTab, activeViewBackground);
   }
 
   const baseLayers = [
@@ -270,8 +298,6 @@ async function loadWebmap(rawInput) {
   if (!hasEffects(baseLayers)) {
     showBanner("This webmap has no effects applied to basemap layers.", "info");
   }
-
-  viewToggle.disabled = false;
 }
 
 async function init() {

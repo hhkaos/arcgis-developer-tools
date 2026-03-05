@@ -1,8 +1,8 @@
 #load-by-id {
   display: flex;
   gap: 0.5rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--calcite-color-border-3);
+  align-items: center;
+  width: clamp(280px, 35vw, 560px);
 }
 
 #load-by-id calcite-input-text {
