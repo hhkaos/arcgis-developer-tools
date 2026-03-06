@@ -236,5 +236,12 @@
     "description": "",
     "primaryBasemap": "",
     "webmapId": "57800d1356b043ffbd66dd756eb7295f"
+  },
+  {
+    "id": "tinted-hillshade",
+    "title": "Tinted hillshade",
+    "description": "",
+    "primaryBasemap": "Satellite",
+    "webmapId": "366c110575ad4363b4fa03c4a877e012"
   }
 ]
