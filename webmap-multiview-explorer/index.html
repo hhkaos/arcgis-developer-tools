@@ -110,23 +110,164 @@
         cursor: pointer;
       }
 
-      #sync-centers-btn {
-        padding: 8px 12px;
-        border: 1px solid #c7c7c7;
-        background: white;
-        cursor: pointer;
-      }
-
-      #sync-centers-btn.active {
-        border-color: #0b63ce;
-        color: #0b63ce;
-      }
-
       #share-link-btn {
         padding: 8px 12px;
         border: 1px solid #c7c7c7;
         background: white;
         cursor: pointer;
+      }
+
+      .main-view-menu {
+        position: relative;
+        width: 100%;
+      }
+
+      #main-view-menu-toggle {
+        width: 100%;
+        min-width: 0;
+      }
+
+      #main-view-menu-toggle[aria-expanded="true"] {
+        border-color: #0b63ce;
+      }
+
+      #main-view-menu-toggle[aria-expanded="true"] .ui-option-state {
+        background: #2e90fa;
+        box-shadow: 0 0 0 1px #1570ef inset;
+      }
+
+      .main-view-menu-list {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        z-index: 4;
+        display: grid;
+        gap: 4px;
+        padding: 8px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+      }
+
+      .main-view-menu-list[hidden] {
+        display: none;
+      }
+
+      .main-view-option {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d5dd;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #1f2937;
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .main-view-option:hover,
+      .main-view-option:focus-visible {
+        border-color: #0b63ce;
+        background: #eff6ff;
+        outline: none;
+      }
+
+      .ui-options {
+        position: relative;
+      }
+
+      .ui-options summary {
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        font-size: 14px;
+      }
+
+      .ui-options summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .ui-options[open] summary {
+        border-color: #0b63ce;
+      }
+
+      .ui-options-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 4;
+        width: max-content;
+        min-width: 240px;
+        max-width: calc(100vw - 24px);
+        box-sizing: border-box;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+      }
+
+      .ui-option-btn {
+        display: grid;
+        grid-template-columns: 18px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #1f2937;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .ui-option-btn:hover,
+      .ui-option-btn:focus-visible {
+        border-color: #0b63ce;
+        background: #f5faff;
+        outline: none;
+      }
+
+      .ui-option-icon {
+        font-size: 14px;
+        line-height: 1;
+        color: #475467;
+      }
+
+      .ui-option-label {
+        font-size: 14px;
+        line-height: 1.2;
+      }
+
+      .ui-option-state {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #d0d5dd;
+        box-shadow: 0 0 0 1px #98a2b3 inset;
+      }
+
+      .ui-option-btn.active {
+        border-color: #12b76a;
+        background: #ecfdf3;
+      }
+
+      .ui-option-btn.active .ui-option-icon,
+      .ui-option-btn.active .ui-option-label {
+        color: #027a48;
+      }
+
+      .ui-option-btn.active .ui-option-state {
+        background: #12b76a;
+        box-shadow: 0 0 0 1px #039855 inset;
       }
 
       #load-map-btn:disabled,
@@ -228,10 +369,23 @@
       }
 
       .toolbar-status {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        z-index: 20;
         display: none;
-        margin-left: auto;
+        min-width: 220px;
+        max-width: min(560px, calc(100vw - 32px));
+        padding: 10px 14px;
+        border: 1px solid #d0d5dd;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+        color: #344054;
         font-size: 13px;
-        color: #5f6368;
+        text-align: center;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
       }
 
       .toolbar-status.visible {
@@ -239,6 +393,8 @@
       }
 
       .toolbar-status.warning {
+        border-color: #fecdca;
+        background: rgba(254, 242, 242, 0.96);
         color: #b42318;
       }
 
@@ -300,31 +456,82 @@
         transform: translateY(0);
       }
 
-      #main-view-element {
+      .view-overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 3;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(37, 99, 235, 0.28);
+        background: rgba(239, 246, 255, 0.96);
+        color: #1e3a8a;
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+
+      .map-grid.is-changing-main-view .view-overlay {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .map-grid.is-changing-main-view .view-shell.is-hover-target .view-overlay {
+        opacity: 1;
+        transform: translateY(0) scale(1.06);
+        border-color: rgba(11, 99, 206, 0.75);
+        background: rgba(219, 234, 254, 0.98);
+        color: #12306b;
+        animation: overlay-bounce 260ms ease;
+      }
+
+      @keyframes overlay-bounce {
+        0% {
+          transform: translateY(0) scale(1);
+        }
+        50% {
+          transform: translateY(-4px) scale(1.1);
+        }
+        100% {
+          transform: translateY(0) scale(1.06);
+        }
+      }
+
+      #main-view-shell {
         grid-column: 1 / -1;
         grid-row: 1;
       }
 
-      #zoom-view-1,
-      #zoom-view-2,
-      #zoom-view-3 {
+      #zoom-view-shell-1,
+      #zoom-view-shell-2,
+      #zoom-view-shell-3 {
         grid-row: 2;
       }
 
-      #zoom-view-1 {
+      #zoom-view-shell-1 {
         grid-column: 1;
       }
 
-      #zoom-view-2 {
+      #zoom-view-shell-2 {
         grid-column: 2;
       }
 
-      #zoom-view-3 {
+      #zoom-view-shell-3 {
         grid-column: 3;
+      }
+
+      .view-shell {
+        position: relative;
+        min-height: 0;
       }
 
       arcgis-map {
         background-color: white;
+        width: 100%;
+        height: 100%;
         min-height: 0;
       }
     </style>
@@ -349,7 +556,33 @@
         </div>
         <input id="item-id-input" type="text" value="5af96e50fee2454781818267a51e955f" placeholder="Enter ArcGIS WebMap item ID" />
         <button id="load-map-btn" type="button">Load map</button>
-        <button id="sync-centers-btn" type="button" aria-pressed="false">Sync centers: Off</button>
+        <details id="ui-options" class="ui-options">
+          <summary>UI options</summary>
+          <div class="ui-options-panel">
+            <button id="sync-centers-btn" class="ui-option-btn" type="button" aria-pressed="false">
+              <span class="ui-option-icon" aria-hidden="true">⟲</span>
+              <span class="ui-option-label">Sync centers</span>
+              <span class="ui-option-state" aria-hidden="true"></span>
+            </button>
+            <button id="toggle-map-components-btn" class="ui-option-btn" type="button" aria-pressed="false">
+              <span class="ui-option-icon" aria-hidden="true">⌖</span>
+              <span class="ui-option-label">Map components</span>
+              <span class="ui-option-state" aria-hidden="true"></span>
+            </button>
+            <div id="main-view-menu" class="main-view-menu">
+              <button id="main-view-menu-toggle" class="ui-option-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="main-view-menu-list">
+                <span class="ui-option-icon" aria-hidden="true">◫</span>
+                <span class="ui-option-label">Change main view</span>
+                <span class="ui-option-state" aria-hidden="true"></span>
+              </button>
+              <div id="main-view-menu-list" class="main-view-menu-list" role="menu" hidden>
+                <button type="button" class="main-view-option" data-source-id="zoom-view-1" role="menuitem">Use zoom view 1 as main</button>
+                <button type="button" class="main-view-option" data-source-id="zoom-view-2" role="menuitem">Use zoom view 2 as main</button>
+                <button type="button" class="main-view-option" data-source-id="zoom-view-3" role="menuitem">Use zoom view 3 as main</button>
+              </div>
+            </div>
+          </div>
+        </details>
         <details id="screenshot-settings" class="screenshot-settings">
           <summary>Export</summary>
           <div class="screenshot-settings-panel">
@@ -399,15 +632,27 @@
 
       <div id="map-grid" class="map-grid">
         <div id="capture-feedback" class="capture-feedback" role="status" aria-live="polite"></div>
-        <arcgis-map id="main-view-element"></arcgis-map>
-        <arcgis-map id="zoom-view-1"></arcgis-map>
-        <arcgis-map id="zoom-view-2"></arcgis-map>
-        <arcgis-map id="zoom-view-3"></arcgis-map>
+        <div id="main-view-shell" class="view-shell">
+          <div class="view-overlay">Main view</div>
+          <arcgis-map id="main-view-element"></arcgis-map>
+        </div>
+        <div id="zoom-view-shell-1" class="view-shell">
+          <div class="view-overlay">Zoom view 1</div>
+          <arcgis-map id="zoom-view-1"></arcgis-map>
+        </div>
+        <div id="zoom-view-shell-2" class="view-shell">
+          <div class="view-overlay">Zoom view 2</div>
+          <arcgis-map id="zoom-view-2"></arcgis-map>
+        </div>
+        <div id="zoom-view-shell-3" class="view-shell">
+          <div class="view-overlay">Zoom view 3</div>
+          <arcgis-map id="zoom-view-3"></arcgis-map>
+        </div>
       </div>
     </div>
 
     <script type="module">
-      const [WebMap] = await $arcgis.import(["@arcgis/core/WebMap.js"]);
+      const [WebMap, Search, Zoom] = await $arcgis.import(["@arcgis/core/WebMap.js", "@arcgis/core/widgets/Search.js", "@arcgis/core/widgets/Zoom.js"]);
 
       const mainViewElement = document.getElementById("main-view-element");
       const zoomView1 = document.getElementById("zoom-view-1");
@@ -416,7 +661,13 @@
       const exampleSelect = document.getElementById("example-select");
       const itemIdInput = document.getElementById("item-id-input");
       const loadMapBtn = document.getElementById("load-map-btn");
+      const uiOptions = document.getElementById("ui-options");
       const syncCentersBtn = document.getElementById("sync-centers-btn");
+      const toggleMapComponentsBtn = document.getElementById("toggle-map-components-btn");
+      const mainViewMenu = document.getElementById("main-view-menu");
+      const mainViewMenuToggle = document.getElementById("main-view-menu-toggle");
+      const mainViewMenuList = document.getElementById("main-view-menu-list");
+      const mainViewOptions = Array.from(document.querySelectorAll(".main-view-option"));
       const shareLinkBtn = document.getElementById("share-link-btn");
       const screenshotSettings = document.getElementById("screenshot-settings");
       const exportImageBtn = document.getElementById("export-image-btn");
@@ -433,6 +684,10 @@
       const captureFeedback = document.getElementById("capture-feedback");
       const toolbarStatus = document.getElementById("toolbar-status");
       const shareOutput = document.getElementById("share-output");
+      const mainViewShell = document.getElementById("main-view-shell");
+      const zoomViewShell1 = document.getElementById("zoom-view-shell-1");
+      const zoomViewShell2 = document.getElementById("zoom-view-shell-2");
+      const zoomViewShell3 = document.getElementById("zoom-view-shell-3");
 
       const viewElements = [mainViewElement, zoomView1, zoomView2, zoomView3];
       const curatedExamplesUrl =
@@ -448,7 +703,10 @@
       let statusMessageTimerId = null;
       let isCenterSyncEnabled = false;
       let isApplyingSyncedCenter = false;
+      let areMapComponentsVisible = false;
+      let mainSearchDomObserver = null;
       const centerSyncHandles = [];
+      const mapComponentWidgets = new WeakMap();
 
       // Wait for component methods/views to be available.
       await Promise.all(viewElements.map((viewElement) => viewElement.componentOnReady()));
@@ -458,18 +716,8 @@
           window.clearTimeout(statusMessageTimerId);
           statusMessageTimerId = null;
         }
-
-        toolbarStatus.textContent = message;
-        toolbarStatus.classList.toggle("visible", Boolean(message));
-        toolbarStatus.classList.toggle("warning", tone === "warning");
-
-        if (message) {
-          statusMessageTimerId = window.setTimeout(() => {
-            toolbarStatus.classList.remove("visible");
-            toolbarStatus.textContent = "";
-            statusMessageTimerId = null;
-          }, statusMessageDurationMs);
-        }
+        toolbarStatus.classList.remove("visible", "warning");
+        toolbarStatus.textContent = "";
       };
 
       const readLastViewed = () => {
@@ -574,6 +822,129 @@
         captureFeedback.classList.remove("visible");
         captureFeedback.textContent = "";
         mapGrid.classList.remove("is-exporting");
+      };
+
+      const setMainViewSelectorActive = (isActive) => {
+        mapGrid.classList.toggle("is-changing-main-view", isActive);
+      };
+
+      const getViewShellBySourceId = (id) => {
+        switch (id) {
+          case "zoom-view-1":
+            return zoomViewShell1;
+          case "zoom-view-2":
+            return zoomViewShell2;
+          case "zoom-view-3":
+            return zoomViewShell3;
+          case "main-view":
+            return mainViewShell;
+          default:
+            return null;
+        }
+      };
+
+      const setHoveredMainViewSource = (sourceId) => {
+        [mainViewShell, zoomViewShell1, zoomViewShell2, zoomViewShell3].forEach((shell) => {
+          shell.classList.remove("is-hover-target");
+        });
+
+        const targetShell = getViewShellBySourceId(sourceId);
+        if (!targetShell) {
+          return;
+        }
+
+        // Restart animation so repeated hovers still "bounce".
+        targetShell.classList.remove("is-hover-target");
+        // Force reflow.
+        void targetShell.offsetWidth;
+        targetShell.classList.add("is-hover-target");
+      };
+
+      const setMainViewMenuOpen = (isOpen) => {
+        mainViewMenuToggle.setAttribute("aria-expanded", String(isOpen));
+        mainViewMenuList.hidden = !isOpen;
+        setMainViewSelectorActive(isOpen);
+        if (!isOpen) {
+          setHoveredMainViewSource("");
+        } else {
+          setHoveredMainViewSource("main-view");
+        }
+      };
+
+      const ensureMapWidgetsForView = (view) => {
+        if (!view) {
+          return null;
+        }
+
+        const existingWidgets = mapComponentWidgets.get(view);
+        if (existingWidgets) {
+          return existingWidgets;
+        }
+
+        const widgets = {
+          zoom: new Zoom({ view }),
+          search: new Search({ view }),
+        };
+        mapComponentWidgets.set(view, widgets);
+        return widgets;
+      };
+
+      const hideMainSearchSubmitButton = () => {
+        const root = mainViewElement.shadowRoot;
+        if (!root) {
+          return;
+        }
+
+        const hide = () => {
+          const submitButtons = root.querySelectorAll(".esri-search__submit-button, .esri-search button[type='submit']");
+          submitButtons.forEach((button) => {
+            button.style.display = "none";
+          });
+        };
+
+        hide();
+
+        if (!mainSearchDomObserver) {
+          mainSearchDomObserver = new MutationObserver(() => hide());
+          mainSearchDomObserver.observe(root, { childList: true, subtree: true });
+        }
+      };
+
+      const updateMapComponentsButtonUi = () => {
+        const status = areMapComponentsVisible ? "shown" : "hidden";
+        toggleMapComponentsBtn.title = `Map components ${status}`;
+        toggleMapComponentsBtn.setAttribute("aria-label", `Map components ${status}`);
+        toggleMapComponentsBtn.setAttribute("aria-pressed", String(areMapComponentsVisible));
+        toggleMapComponentsBtn.classList.toggle("active", areMapComponentsVisible);
+      };
+
+      const applyMapComponentsVisibility = async () => {
+        await Promise.all(viewElements.map((viewElement) => viewElement.viewOnReady()));
+        viewElements.forEach((viewElement) => {
+          const view = viewElement.view;
+          if (!view?.ready) {
+            return;
+          }
+
+          const widgets = ensureMapWidgetsForView(view);
+          if (!widgets) {
+            return;
+          }
+
+          const isMainView = viewElement === mainViewElement;
+          if (areMapComponentsVisible) {
+            view.ui.remove(widgets.zoom);
+            view.ui.remove(widgets.search);
+            view.ui.add(widgets.zoom, "top-left");
+            if (isMainView) {
+              view.ui.add(widgets.search, "top-right");
+              hideMainSearchSubmitButton();
+            }
+          } else {
+            view.ui.remove(widgets.zoom);
+            view.ui.remove(widgets.search);
+          }
+        });
       };
 
       const waitForNextFrames = (count = 2) =>
@@ -731,7 +1102,9 @@
       };
 
       const updateSyncButtonUi = () => {
-        syncCentersBtn.textContent = `Sync centers: ${isCenterSyncEnabled ? "On" : "Off"}`;
+        const status = isCenterSyncEnabled ? "enabled" : "disabled";
+        syncCentersBtn.title = `Sync centers ${status}`;
+        syncCentersBtn.setAttribute("aria-label", `Sync centers ${status}`);
         syncCentersBtn.setAttribute("aria-pressed", String(isCenterSyncEnabled));
         syncCentersBtn.classList.toggle("active", isCenterSyncEnabled);
       };
@@ -783,6 +1156,66 @@
           });
           centerSyncHandles.push(handle);
         });
+      };
+
+      const getSmallViewElementById = (id) => {
+        switch (id) {
+          case "zoom-view-1":
+            return zoomView1;
+          case "zoom-view-2":
+            return zoomView2;
+          case "zoom-view-3":
+            return zoomView3;
+          default:
+            return null;
+        }
+      };
+
+      const getSmallViewLabelById = (id) => {
+        switch (id) {
+          case "zoom-view-1":
+            return "Zoom view 1";
+          case "zoom-view-2":
+            return "Zoom view 2";
+          case "zoom-view-3":
+            return "Zoom view 3";
+          default:
+            return "selected view";
+        }
+      };
+
+      const swapMainExtentWith = async (sourceViewElement) => {
+        if (!sourceViewElement) {
+          setStatusMessage("Warning: choose a valid small view.", "warning");
+          return false;
+        }
+
+        await Promise.all([mainViewElement.viewOnReady(), sourceViewElement.viewOnReady()]);
+        const mainView = mainViewElement.view;
+        const sourceView = sourceViewElement.view;
+
+        if (!mainView?.ready || !sourceView?.ready || !mainView.viewpoint || !sourceView.viewpoint) {
+          setStatusMessage("Warning: views are not ready to swap extents.", "warning");
+          return false;
+        }
+
+        const mainViewpoint = mainView.viewpoint.clone();
+        const sourceViewpoint = sourceView.viewpoint.clone();
+
+        isApplyingSyncedCenter = true;
+
+        try {
+          await Promise.all([
+            mainView.goTo(sourceViewpoint, { animate: false }),
+            sourceView.goTo(mainViewpoint, { animate: false }),
+          ]);
+          return true;
+        } catch (error) {
+          // Ignore aborted goTo calls caused by rapid user interactions.
+          return false;
+        } finally {
+          isApplyingSyncedCenter = false;
+        }
       };
 
       const getCuratedExampleItemId = (example) => {
@@ -932,6 +1365,7 @@
           await maps[0].load();
           await setScreenshotFilenameFromMap(maps[0], itemId);
           await setInitialZoomLevels();
+          await applyMapComponentsVisibility();
           saveLastViewed(itemId);
           clearItemIdFromUrl();
           hideShareOutput();
@@ -947,6 +1381,33 @@
       loadMapBtn.addEventListener("click", () => {
         loadWebMap();
       });
+      uiOptions.addEventListener("focusout", (event) => {
+        const nextFocused = event.relatedTarget;
+        if (!nextFocused || !uiOptions.contains(nextFocused)) {
+          uiOptions.open = false;
+          setMainViewMenuOpen(false);
+        }
+      });
+      uiOptions.addEventListener("toggle", () => {
+        if (uiOptions.open) {
+          screenshotSettings.open = false;
+        }
+        if (!uiOptions.open) {
+          setMainViewMenuOpen(false);
+        }
+      });
+      screenshotSettings.addEventListener("focusout", (event) => {
+        const nextFocused = event.relatedTarget;
+        if (!nextFocused || !screenshotSettings.contains(nextFocused)) {
+          screenshotSettings.open = false;
+        }
+      });
+      screenshotSettings.addEventListener("toggle", () => {
+        if (screenshotSettings.open) {
+          uiOptions.open = false;
+          setMainViewMenuOpen(false);
+        }
+      });
       syncCentersBtn.addEventListener("click", async () => {
         isCenterSyncEnabled = !isCenterSyncEnabled;
         updateSyncButtonUi();
@@ -956,6 +1417,61 @@
           setStatusMessage("Center sync enabled.");
         } else {
           setStatusMessage("Center sync disabled.");
+        }
+      });
+      toggleMapComponentsBtn.addEventListener("click", async () => {
+        areMapComponentsVisible = !areMapComponentsVisible;
+        updateMapComponentsButtonUi();
+        await applyMapComponentsVisibility();
+        setStatusMessage(`Map components ${areMapComponentsVisible ? "shown" : "hidden"}.`);
+      });
+      mainViewMenuToggle.addEventListener("click", () => {
+        const isOpen = mainViewMenuToggle.getAttribute("aria-expanded") === "true";
+        setMainViewMenuOpen(!isOpen);
+      });
+      mainViewMenu.addEventListener("focusout", (event) => {
+        const nextFocused = event.relatedTarget;
+        if (!nextFocused || !mainViewMenu.contains(nextFocused)) {
+          setMainViewMenuOpen(false);
+        }
+      });
+      mainViewOptions.forEach((option) => {
+        option.addEventListener("mouseenter", () => {
+          setHoveredMainViewSource(option.dataset.sourceId || "");
+        });
+        option.addEventListener("focus", () => {
+          setHoveredMainViewSource(option.dataset.sourceId || "");
+        });
+        option.addEventListener("mouseleave", () => {
+          setHoveredMainViewSource("main-view");
+        });
+        option.addEventListener("blur", () => {
+          setHoveredMainViewSource("main-view");
+        });
+        option.addEventListener("click", async () => {
+          const sourceId = option.dataset.sourceId || "";
+          if (!sourceId) {
+            return;
+          }
+
+          const sourceViewElement = getSmallViewElementById(sourceId);
+          const didSwap = await swapMainExtentWith(sourceViewElement);
+          if (didSwap) {
+            setStatusMessage(`Main extent updated from ${getSmallViewLabelById(sourceId)}.`);
+          }
+
+          setMainViewMenuOpen(false);
+          mainViewMenuToggle.focus();
+        });
+      });
+      document.addEventListener("click", (event) => {
+        if (!mainViewMenu.contains(event.target)) {
+          setMainViewMenuOpen(false);
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          setMainViewMenuOpen(false);
         }
       });
       shareLinkBtn.addEventListener("click", async () => {
@@ -1061,7 +1577,9 @@
       itemIdInput.value = queryItemId || lastViewed?.itemId?.trim() || defaultItemId;
       currentInputSource = queryItemId ? "query" : lastViewed?.itemId ? "restore" : "initial";
 
+      setMainViewMenuOpen(false);
       updateSyncButtonUi();
+      updateMapComponentsButtonUi();
       updateScreenshotSettingsUi();
       updateScreenshotQualityLabel();
       await loadCuratedExamples();
