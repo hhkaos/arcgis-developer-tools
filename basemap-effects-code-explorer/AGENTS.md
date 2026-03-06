@@ -5,6 +5,13 @@ For behaviour rules and coding style, see [CLAUDE.md](CLAUDE.md).
 
 ---
 
+## Feature request workflow
+
+For any new feature request, run and follow the skill at
+`/.claude/skills/feature-surveyor/SKILL.md` before implementation.
+
+---
+
 ## Quick commands
 
 ```bash
@@ -34,29 +41,34 @@ Pre-commit hook (after Phase 6 setup): `npm run lint && npm run build` — both 
 ## File map
 
 ```
-demos/basemap-effects-code-explorer/
+basemap-effects-code-explorer/
 ├── index.html                  # Entry point. <body class="calcite-mode-dark">
+│                               # Layout: calcite-shell > #split-layout (flex row)
+│                               #   #gallery-side (flex:1) | #resize-handle | #map-side (hidden by default)
 ├── package.json
 ├── vite.config.js              # build.target: "es2020" — no other config needed
 ├── eslint.config.js            # Flat config. Browser globals declared manually.
-├── curated-examples.json       # [{ id, title, description, webmapId, thumbnailUrl }]
+├── curated-examples.json       # [{ title, webmapId, ... }]
 ├── SPEC.md                     # Full product spec — source of truth for requirements
 ├── CLAUDE.md                   # Claude Code instructions (this file's companion)
 ├── TODO.md                     # Phased checklist — keep updated as work progresses
 └── src/
-    ├── main.js                 # Entry: CSS imports, bootstrap, wiring
+    ├── main.js                 # Entry: imports, wiring, openMapPanel/closeMapPanel,
+    │                           # resize handle, localStorage panel width, loadWebmap
     ├── state/
     │   └── state.js            # Module-level state: activeWebmapId, activeTab
     ├── views/
-    │   └── views.js            # initViews, switchTo2D, switchTo3D
+    │   └── views.js            # switchTo2D, switchTo3D
     ├── gallery/
-    │   └── gallery.js          # renderGallery, setActiveCard
+    │   ├── gallery.js          # renderGallery (renders into #gallery-grid div), setActiveCard
+    │   └── gallery.css         # #gallery-grid: display:grid; auto-fill minmax(200px,1fr)
     ├── layers/
-    │   └── layers.js           # readBasemapLayers, detectSceneViewLimitations
+    │   └── layers.js           # readBasemapLayers, detectSceneViewLimitations, hasEffects, warnIfOperationalLayers
     ├── codegen/
-    │   └── codegen.js          # generateSnippet(layers, mode: '2d'|'3d') → string
+    │   └── codegen.js          # generateSnippet(baseLayers, referenceLayers, mode) → string
     └── ui/
-        └── ui.js               # renderCodePanel, openCodePanel, closeCodePanel, wireCodePanelControls
+        ├── ui.js               # openCodeModal, renderCodeModal, wireCodeModalControls
+        └── ui.css
 ```
 
 Each `src/<module>/` directory owns a co-located `.css` file imported in `main.js`.
@@ -64,6 +76,22 @@ Each `src/<module>/` directory owns a co-located `.css` file imported in `main.j
 ---
 
 ## Architecture decisions
+
+### Split-panel layout
+
+`index.html` uses a custom `#split-layout` flex row (not `calcite-shell-panel`) as the main content of `calcite-shell`:
+
+- `#gallery-side` — `flex: 1`, always visible, fills full width when map panel is hidden.
+- `#resize-handle` — 10px drag bar between panels. Hidden when map panel is closed.
+- `#map-side` — `flex: 0 0 <px>`, hidden by default. Opens when a gallery card is clicked.
+
+`openMapPanel()` / `closeMapPanel()` in `main.js` toggle `hidden` on both `#map-side` and `#resize-handle`. **Important:** Elements with an explicit `display` value in CSS (e.g. `display: flex`) override the browser's default `[hidden] { display: none }`. The fix is a higher-specificity rule: `#map-side[hidden], #resize-handle[hidden] { display: none; }`.
+
+Panel width defaults to 75% of the layout on first open, then persists across sessions in `localStorage` under key `"basemap-explorer-map-panel-width"`. Width is saved on `pointerup` after a drag.
+
+The gallery does **not** auto-load a webmap on init — it waits for the user to click a card (or use the load-by-ID input). This ensures `#map-side` starts hidden and the gallery takes full width.
+
+---
 
 ### Shared Map instance
 Both `MapView` and `SceneView` reference the **same `ArcGISMap` instance**. This means:
@@ -375,3 +403,20 @@ These were discovered by comparing MapView and SceneView with the same shared We
   Physical files are in `dist/components/<name>/`. Import as
   `@arcgis/map-components/components/<name>` (no `dist/` prefix). To verify a component
   exists before importing, check `ls node_modules/@arcgis/map-components/dist/components/`.
+
+- [2026-03-05] **Explicit `display` in CSS overrides `[hidden]` attribute.**
+  The browser's UA stylesheet sets `[hidden] { display: none }` (no `!important`). If an
+  element also has an explicit `display` in your CSS (e.g. `#map-side { display: flex }`),
+  your rule wins and `element.hidden = true` has no visual effect. Fix: add
+  `#element[hidden] { display: none; }` — the attribute selector raises specificity enough
+  to win without needing `!important`.
+
+- [2026-03-05] **`calcite-card-group` has internal shadow styles that prevent external grid layout.**
+  Setting `display: grid` on `calcite-card-group` from outside does not produce a multi-column
+  grid — the component's shadow DOM layout takes over. Replace it with a plain `<div id="gallery-grid">`
+  and apply the grid CSS there. `card.selected` works fine on `calcite-card` regardless of
+  whether it is inside `calcite-card-group`.
+
+- [2026-03-05] **`calcite-button` with `appearance="transparent"` and only an icon has no
+  visible click target** if the icon name doesn't resolve. Always include visible text on
+  action buttons, or use `appearance="outline-fill"` so there is a rendered box to click.

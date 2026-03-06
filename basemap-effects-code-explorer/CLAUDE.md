@@ -11,11 +11,23 @@ A read-only developer-education tool: load a public ArcGIS Online webmap, visual
 basemap effects in 2D and 3D side-by-side (tab-toggled), and surface copy-pasteable SDK
 code that reproduces those effects programmatically.
 
+### Layout overview
+
+- On load: gallery panel fills the full window. No map is auto-loaded.
+- Clicking a gallery card opens the map panel on the right via a resizable split layout
+  (`#gallery-side` | `#resize-handle` | `#map-side`). The close button hides `#map-side`
+  and the gallery returns to full width.
+- Panel width is persisted in `localStorage` (`"basemap-explorer-map-panel-width"`).
+
 Full spec: [SPEC.md](SPEC.md). Phased build plan and progress tracking: [TODO.md](TODO.md).
 
 ---
 
 ## Behaviour rules (always follow these)
+
+### New feature requests must start with feature surveyor
+For any new feature request, run and follow the skill at
+`/.claude/skills/feature-surveyor/SKILL.md` before implementation.
 
 ### TODO.md is the source of truth for progress
 - After completing any task (or part of a task), **immediately check it off** in TODO.md.
@@ -97,3 +109,40 @@ We are following the phased plan in TODO.md. Before starting a new phase:
 1. Confirm all tasks in the current phase are checked off.
 2. Check the "Feedback needed" section at the end of the phase — these require user input.
 3. Do not jump ahead to implement features from a later phase mid-phase.
+
+## File map
+
+```
+basemap-effects-code-explorer/
+├── index.html                  # Entry point. <body class="calcite-mode-dark">
+│                               # Layout: calcite-shell > #split-layout (flex row)
+│                               #   #gallery-side (flex:1) | #resize-handle | #map-side (hidden by default)
+├── package.json
+├── vite.config.js              # build.target: "es2020" — no other config needed
+├── eslint.config.js            # Flat config. Browser globals declared manually.
+├── curated-examples.json       # [{ title, webmapId, ... }]
+├── SPEC.md                     # Full product spec — source of truth for requirements
+├── CLAUDE.md                   # Claude Code instructions (this file's companion)
+├── TODO.md                     # Phased checklist — keep updated as work progresses
+└── src/
+    ├── main.js                 # Entry: imports, wiring, openMapPanel/closeMapPanel,
+    │                           # resize handle, localStorage panel width, loadWebmap
+    ├── state/
+    │   └── state.js            # Module-level state: activeWebmapId, activeTab
+    ├── views/
+    │   └── views.js            # switchTo2D, switchTo3D
+    ├── gallery/
+    │   ├── gallery.js          # renderGallery (renders into #gallery-grid div), setActiveCard
+    │   └── gallery.css         # #gallery-grid: display:grid; auto-fill minmax(200px,1fr)
+    ├── layers/
+    │   └── layers.js           # readBasemapLayers, detectSceneViewLimitations, hasEffects, warnIfOperationalLayers
+    ├── codegen/
+    │   └── codegen.js          # generateSnippet(baseLayers, referenceLayers, mode) → string
+    └── ui/
+        ├── ui.js               # openCodeModal, renderCodeModal, wireCodeModalControls
+        └── ui.css
+```
+
+Each `src/<module>/` directory owns a co-located `.css` file imported in `main.js`.
+
+---
