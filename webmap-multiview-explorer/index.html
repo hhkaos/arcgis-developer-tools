@@ -110,7 +110,117 @@
         cursor: pointer;
       }
 
+      #sync-centers-btn {
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        cursor: pointer;
+      }
+
+      #sync-centers-btn.active {
+        border-color: #0b63ce;
+        color: #0b63ce;
+      }
+
       #share-link-btn {
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        cursor: pointer;
+      }
+
+      #load-map-btn:disabled,
+      #export-image-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
+      .screenshot-settings {
+        position: relative;
+      }
+
+      .screenshot-settings summary {
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+        padding: 8px 12px;
+        border: 1px solid #c7c7c7;
+        background: white;
+        font-size: 14px;
+      }
+
+      .screenshot-settings summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .screenshot-settings[open] summary {
+        border-color: #0b63ce;
+      }
+
+      .screenshot-settings-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 3;
+        min-width: 260px;
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+      }
+
+      .screenshot-field {
+        display: grid;
+        gap: 4px;
+      }
+
+      .screenshot-field label {
+        font-size: 12px;
+        color: #475467;
+      }
+
+      .screenshot-field select,
+      .screenshot-field input {
+        padding: 6px 8px;
+        border: 1px solid #c7c7c7;
+      }
+
+      .quality-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #screenshot-quality-value {
+        min-width: 48px;
+        font-size: 12px;
+        color: #475467;
+      }
+
+      #screenshot-custom-size-row {
+        display: none;
+      }
+
+      #screenshot-custom-size-row.visible {
+        display: grid;
+      }
+
+      .custom-size-inputs {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .custom-size-inputs input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      #export-image-btn {
+        width: 100%;
         padding: 8px 12px;
         border: 1px solid #c7c7c7;
         background: white;
@@ -119,7 +229,7 @@
 
       .toolbar-status {
         display: none;
-        flex-basis: 100%;
+        margin-left: auto;
         font-size: 13px;
         color: #5f6368;
       }
@@ -152,12 +262,42 @@
 
       .map-grid {
         display: grid;
+        position: relative;
         gap: 8px;
         padding: 8px;
         height: 100%;
         box-sizing: border-box;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
+        transition: width 180ms ease, height 180ms ease, box-shadow 180ms ease;
+      }
+
+      .map-grid.is-exporting {
+        box-shadow: 0 0 0 3px rgba(11, 99, 206, 0.45) inset;
+      }
+
+      .capture-feedback {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 4;
+        max-width: min(440px, calc(100% - 28px));
+        padding: 10px 12px;
+        border: 1px solid #93c5fd;
+        border-radius: 8px;
+        background: rgba(239, 246, 255, 0.95);
+        color: #1e3a8a;
+        font-size: 13px;
+        line-height: 1.35;
+        opacity: 0;
+        transform: translateY(-6px);
+        pointer-events: none;
+        transition: opacity 150ms ease, transform 150ms ease;
+      }
+
+      .capture-feedback.visible {
+        opacity: 1;
+        transform: translateY(0);
       }
 
       #main-view-element {
@@ -209,12 +349,56 @@
         </div>
         <input id="item-id-input" type="text" value="5af96e50fee2454781818267a51e955f" placeholder="Enter ArcGIS WebMap item ID" />
         <button id="load-map-btn" type="button">Load map</button>
+        <button id="sync-centers-btn" type="button" aria-pressed="false">Sync centers: Off</button>
+        <details id="screenshot-settings" class="screenshot-settings">
+          <summary>Export</summary>
+          <div class="screenshot-settings-panel">
+            <div class="screenshot-field">
+              <label for="screenshot-format">Format</label>
+              <select id="screenshot-format">
+                <option value="png">PNG</option>
+                <option value="webp">WebP</option>
+                <option value="jpeg">JPG</option>
+              </select>
+            </div>
+            <div class="screenshot-field">
+              <label for="screenshot-aspect-ratio">Aspect ratio</label>
+              <select id="screenshot-aspect-ratio">
+                <option value="grid">Current map-grid</option>
+                <option value="16:9">16:9</option>
+                <option value="4:3">4:3</option>
+                <option value="1:1">1:1</option>
+                <option value="custom">Custom size</option>
+              </select>
+            </div>
+            <div id="screenshot-custom-size-row" class="screenshot-field">
+              <label>Custom size (px)</label>
+              <div class="custom-size-inputs">
+                <input id="screenshot-custom-width" type="number" min="64" step="1" value="1920" placeholder="Width" />
+                <input id="screenshot-custom-height" type="number" min="64" step="1" value="1080" placeholder="Height" />
+              </div>
+            </div>
+            <div id="screenshot-quality-row" class="screenshot-field">
+              <label for="screenshot-quality">Quality</label>
+              <div class="quality-row">
+                <input id="screenshot-quality" type="range" min="0.5" max="1" step="0.01" value="0.92" />
+                <span id="screenshot-quality-value">92%</span>
+              </div>
+            </div>
+            <div class="screenshot-field">
+              <label for="screenshot-filename">Filename</label>
+              <input id="screenshot-filename" type="text" value="webmap-multiview" />
+            </div>
+            <button id="export-image-btn" type="button">Download image</button>
+          </div>
+        </details>
         <button id="share-link-btn" type="button">Share</button>
         <div id="toolbar-status" class="toolbar-status" role="status" aria-live="polite"></div>
       </div>
       <div id="share-output" class="share-output" aria-live="polite"></div>
 
-      <div class="map-grid">
+      <div id="map-grid" class="map-grid">
+        <div id="capture-feedback" class="capture-feedback" role="status" aria-live="polite"></div>
         <arcgis-map id="main-view-element"></arcgis-map>
         <arcgis-map id="zoom-view-1"></arcgis-map>
         <arcgis-map id="zoom-view-2"></arcgis-map>
@@ -232,7 +416,21 @@
       const exampleSelect = document.getElementById("example-select");
       const itemIdInput = document.getElementById("item-id-input");
       const loadMapBtn = document.getElementById("load-map-btn");
+      const syncCentersBtn = document.getElementById("sync-centers-btn");
       const shareLinkBtn = document.getElementById("share-link-btn");
+      const screenshotSettings = document.getElementById("screenshot-settings");
+      const exportImageBtn = document.getElementById("export-image-btn");
+      const screenshotFormat = document.getElementById("screenshot-format");
+      const screenshotAspectRatio = document.getElementById("screenshot-aspect-ratio");
+      const screenshotCustomSizeRow = document.getElementById("screenshot-custom-size-row");
+      const screenshotCustomWidth = document.getElementById("screenshot-custom-width");
+      const screenshotCustomHeight = document.getElementById("screenshot-custom-height");
+      const screenshotQualityRow = document.getElementById("screenshot-quality-row");
+      const screenshotQuality = document.getElementById("screenshot-quality");
+      const screenshotQualityValue = document.getElementById("screenshot-quality-value");
+      const screenshotFilename = document.getElementById("screenshot-filename");
+      const mapGrid = document.getElementById("map-grid");
+      const captureFeedback = document.getElementById("capture-feedback");
       const toolbarStatus = document.getElementById("toolbar-status");
       const shareOutput = document.getElementById("share-output");
 
@@ -242,17 +440,36 @@
       const lastViewedStorageKey = "webmap-multiview:last-viewed";
       const defaultItemId = itemIdInput.value.trim();
       const queryItemId = new URLSearchParams(window.location.search).get("itemid")?.trim() ?? "";
+      const lossyExportFormats = new Set(["webp", "jpeg"]);
+      const statusMessageDurationMs = 3500;
       let curatedExamples = [];
       let isSyncingSelection = false;
       let currentInputSource = "initial";
+      let statusMessageTimerId = null;
+      let isCenterSyncEnabled = false;
+      let isApplyingSyncedCenter = false;
+      const centerSyncHandles = [];
 
       // Wait for component methods/views to be available.
       await Promise.all(viewElements.map((viewElement) => viewElement.componentOnReady()));
 
       const setStatusMessage = (message = "", tone = "default") => {
+        if (statusMessageTimerId) {
+          window.clearTimeout(statusMessageTimerId);
+          statusMessageTimerId = null;
+        }
+
         toolbarStatus.textContent = message;
         toolbarStatus.classList.toggle("visible", Boolean(message));
         toolbarStatus.classList.toggle("warning", tone === "warning");
+
+        if (message) {
+          statusMessageTimerId = window.setTimeout(() => {
+            toolbarStatus.classList.remove("visible");
+            toolbarStatus.textContent = "";
+            statusMessageTimerId = null;
+          }, statusMessageDurationMs);
+        }
       };
 
       const readLastViewed = () => {
@@ -290,6 +507,215 @@
         shareOutput.textContent = "";
       };
 
+      const setScreenshotFilenameFromMap = async (webMap, fallbackItemId = "") => {
+        let title = webMap?.portalItem?.title?.trim() ?? "";
+
+        if (!title && webMap?.portalItem?.load) {
+          try {
+            await webMap.portalItem.load();
+            title = webMap.portalItem?.title?.trim() ?? "";
+          } catch (error) {
+            console.warn("Unable to load portal item title for filename:", error);
+          }
+        }
+
+        screenshotFilename.value = title || fallbackItemId || "webmap-multiview";
+      };
+
+      const sanitizeFilename = (filename) => {
+        const cleaned = filename.trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-");
+        return cleaned || "webmap-multiview";
+      };
+
+      const getMimeTypeForFormat = (format) => {
+        switch (format) {
+          case "jpeg":
+            return "image/jpeg";
+          case "webp":
+            return "image/webp";
+          default:
+            return "image/png";
+        }
+      };
+
+      const parseAspectRatio = (value) => {
+        const [w, h] = value.split(":").map(Number);
+        if (!Number.isFinite(w) || !Number.isFinite(h) || h === 0) {
+          return null;
+        }
+        return w / h;
+      };
+
+      const parseCustomExportSize = () => {
+        const width = Number.parseInt(screenshotCustomWidth.value, 10);
+        const height = Number.parseInt(screenshotCustomHeight.value, 10);
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 64 || height < 64) {
+          return null;
+        }
+        return { width, height };
+      };
+
+      const resizeCanvas = (sourceCanvas, width, height) => {
+        const targetCanvas = document.createElement("canvas");
+        targetCanvas.width = width;
+        targetCanvas.height = height;
+        const context = targetCanvas.getContext("2d");
+        context.drawImage(sourceCanvas, 0, 0, width, height);
+        return targetCanvas;
+      };
+
+      const showCaptureFeedback = (message) => {
+        captureFeedback.textContent = message;
+        captureFeedback.classList.add("visible");
+        mapGrid.classList.add("is-exporting");
+      };
+
+      const hideCaptureFeedback = () => {
+        captureFeedback.classList.remove("visible");
+        captureFeedback.textContent = "";
+        mapGrid.classList.remove("is-exporting");
+      };
+
+      const waitForNextFrames = (count = 2) =>
+        new Promise((resolve) => {
+          const step = () => {
+            if (count <= 0) {
+              resolve();
+              return;
+            }
+            count -= 1;
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+
+      const fitSizeToAspectRatio = (maxWidth, maxHeight, aspectRatio) => {
+        let width = maxWidth;
+        let height = width / aspectRatio;
+
+        if (height > maxHeight) {
+          height = maxHeight;
+          width = height * aspectRatio;
+        }
+
+        return {
+          width: Math.max(1, Math.round(width)),
+          height: Math.max(1, Math.round(height)),
+        };
+      };
+
+      const withTemporaryGridAspectRatio = async (aspectRatioValue, callback, customSize = null) => {
+        const customRatio = customSize ? customSize.width / customSize.height : null;
+        const targetRatio = aspectRatioValue === "grid" ? null : parseAspectRatio(aspectRatioValue);
+        const requestedRatio = customRatio ?? targetRatio;
+        const shouldResize = Boolean(requestedRatio);
+        const originalStyleAttribute = mapGrid.getAttribute("style");
+
+        if (shouldResize) {
+          const availableRect = mapGrid.getBoundingClientRect();
+          const fittedSize = fitSizeToAspectRatio(availableRect.width, availableRect.height, requestedRatio);
+          const message = aspectRatioValue === "custom" ? `Preparing custom export (${customSize.width}x${customSize.height})...` : `Preparing ${aspectRatioValue} export: temporarily fitting map layout...`;
+          showCaptureFeedback(message);
+
+          mapGrid.style.width = `${fittedSize.width}px`;
+          mapGrid.style.height = `${fittedSize.height}px`;
+          mapGrid.style.justifySelf = "center";
+          mapGrid.style.alignSelf = "center";
+        } else {
+          showCaptureFeedback("Capturing current map-grid layout...");
+        }
+
+        await waitForNextFrames();
+
+        try {
+          return await callback();
+        } finally {
+          if (shouldResize) {
+            if (originalStyleAttribute === null) {
+              mapGrid.removeAttribute("style");
+            } else {
+              mapGrid.setAttribute("style", originalStyleAttribute);
+            }
+          }
+          await waitForNextFrames();
+          hideCaptureFeedback();
+        }
+      };
+
+      const loadImage = (dataUrl) =>
+        new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = dataUrl;
+        });
+
+      const canvasToBlob = (canvas, mimeType, quality) =>
+        new Promise((resolve) => {
+          canvas.toBlob((blob) => resolve(blob), mimeType, quality);
+        });
+
+      const composeViewsToCanvas = async () => {
+        await Promise.all(viewElements.map((viewElement) => viewElement.viewOnReady()));
+
+        const gridRect = mapGrid.getBoundingClientRect();
+        if (gridRect.width <= 0 || gridRect.height <= 0) {
+          throw new Error("Map grid is not visible.");
+        }
+
+        const scale = Math.min(window.devicePixelRatio || 1, 2);
+        const width = Math.max(1, Math.round(gridRect.width * scale));
+        const height = Math.max(1, Math.round(gridRect.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d");
+        const gridBackground = getComputedStyle(mapGrid).backgroundColor;
+        context.fillStyle = gridBackground && gridBackground !== "rgba(0, 0, 0, 0)" ? gridBackground : "#f5f5f5";
+        context.fillRect(0, 0, width, height);
+
+        const captures = await Promise.all(
+          viewElements.map(async (viewElement) => {
+            const rect = viewElement.getBoundingClientRect();
+            const screenshot = await viewElement.view.takeScreenshot({
+              width: Math.max(1, Math.round(rect.width * scale)),
+              height: Math.max(1, Math.round(rect.height * scale)),
+              format: "png",
+            });
+
+            return {
+              dataUrl: screenshot.dataUrl,
+              left: Math.round((rect.left - gridRect.left) * scale),
+              top: Math.round((rect.top - gridRect.top) * scale),
+              width: Math.round(rect.width * scale),
+              height: Math.round(rect.height * scale),
+            };
+          })
+        );
+
+        const images = await Promise.all(captures.map((capture) => loadImage(capture.dataUrl)));
+
+        captures.forEach((capture, index) => {
+          context.drawImage(images[index], capture.left, capture.top, capture.width, capture.height);
+        });
+
+        return canvas;
+      };
+
+      const updateScreenshotSettingsUi = () => {
+        const format = screenshotFormat.value;
+        const showQuality = lossyExportFormats.has(format);
+        screenshotQualityRow.style.display = showQuality ? "" : "none";
+        const showCustomSize = screenshotAspectRatio.value === "custom";
+        screenshotCustomSizeRow.classList.toggle("visible", showCustomSize);
+      };
+
+      const updateScreenshotQualityLabel = () => {
+        const percentage = Math.round(Number(screenshotQuality.value) * 100);
+        screenshotQualityValue.textContent = `${percentage}%`;
+      };
+
       const showShareOutput = (shareUrl) => {
         shareOutput.replaceChildren();
 
@@ -302,6 +728,61 @@
 
         shareOutput.append(label, link);
         shareOutput.classList.add("visible");
+      };
+
+      const updateSyncButtonUi = () => {
+        syncCentersBtn.textContent = `Sync centers: ${isCenterSyncEnabled ? "On" : "Off"}`;
+        syncCentersBtn.setAttribute("aria-pressed", String(isCenterSyncEnabled));
+        syncCentersBtn.classList.toggle("active", isCenterSyncEnabled);
+      };
+
+      const syncCenterToOtherViews = async (sourceView) => {
+        if (!isCenterSyncEnabled || isApplyingSyncedCenter || !sourceView?.center) {
+          return;
+        }
+
+        const center = sourceView.center.clone();
+        const destinationViews = viewElements
+          .map((viewElement) => viewElement.view)
+          .filter((view) => view && view !== sourceView && view.ready);
+
+        if (!destinationViews.length) {
+          return;
+        }
+
+        isApplyingSyncedCenter = true;
+
+        try {
+          await Promise.all(
+            destinationViews.map((view) =>
+              view.goTo(
+                {
+                  center,
+                },
+                { animate: false }
+              )
+            )
+          );
+        } catch (error) {
+          // Ignore aborted goTo calls caused by rapid user interactions.
+        } finally {
+          isApplyingSyncedCenter = false;
+        }
+      };
+
+      const setupCenterSyncHandlers = async () => {
+        if (centerSyncHandles.length) {
+          return;
+        }
+
+        await Promise.all(viewElements.map((viewElement) => viewElement.viewOnReady()));
+
+        viewElements.forEach((viewElement) => {
+          const handle = viewElement.view.watch("center", () => {
+            syncCenterToOtherViews(viewElement.view);
+          });
+          centerSyncHandles.push(handle);
+        });
       };
 
       const getCuratedExampleItemId = (example) => {
@@ -449,6 +930,7 @@
           [mainViewElement.map, zoomView1.map, zoomView2.map, zoomView3.map] = maps;
 
           await maps[0].load();
+          await setScreenshotFilenameFromMap(maps[0], itemId);
           await setInitialZoomLevels();
           saveLastViewed(itemId);
           clearItemIdFromUrl();
@@ -464,6 +946,17 @@
 
       loadMapBtn.addEventListener("click", () => {
         loadWebMap();
+      });
+      syncCentersBtn.addEventListener("click", async () => {
+        isCenterSyncEnabled = !isCenterSyncEnabled;
+        updateSyncButtonUi();
+
+        if (isCenterSyncEnabled) {
+          await setupCenterSyncHandlers();
+          setStatusMessage("Center sync enabled.");
+        } else {
+          setStatusMessage("Center sync disabled.");
+        }
       });
       shareLinkBtn.addEventListener("click", async () => {
         const itemId = itemIdInput.value.trim();
@@ -487,6 +980,57 @@
         setStatusMessage("Clipboard access is unavailable. Copy the share URL below.", "warning");
         showShareOutput(shareUrl);
       });
+
+      exportImageBtn.addEventListener("click", async () => {
+        const isCustomSize = screenshotAspectRatio.value === "custom";
+        const customSize = isCustomSize ? parseCustomExportSize() : null;
+        if (isCustomSize && !customSize) {
+          setStatusMessage("Warning: custom width and height must be at least 64 px.", "warning");
+          return;
+        }
+
+        exportImageBtn.disabled = true;
+        const originalLabel = exportImageBtn.textContent;
+        exportImageBtn.textContent = "Generating...";
+        setStatusMessage("Generating screenshot...");
+
+        try {
+          const capturedCanvas = await withTemporaryGridAspectRatio(screenshotAspectRatio.value, () => composeViewsToCanvas(), customSize);
+          const outputCanvas = customSize ? resizeCanvas(capturedCanvas, customSize.width, customSize.height) : capturedCanvas;
+          const format = screenshotFormat.value;
+          const mimeType = getMimeTypeForFormat(format);
+          const quality = lossyExportFormats.has(format) ? Number(screenshotQuality.value) : undefined;
+          const blob = await canvasToBlob(outputCanvas, mimeType, quality);
+
+          if (!blob) {
+            throw new Error("Unable to generate image blob.");
+          }
+
+          const extension = format === "jpeg" ? "jpg" : format;
+          const filename = `${sanitizeFilename(screenshotFilename.value)}.${extension}`;
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = filename;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(blobUrl);
+
+          screenshotSettings.open = false;
+          setStatusMessage("Screenshot downloaded.");
+        } catch (error) {
+          console.error("Unable to create screenshot:", error);
+          setStatusMessage("Warning: screenshot could not be created.", "warning");
+        } finally {
+          exportImageBtn.disabled = false;
+          exportImageBtn.textContent = originalLabel;
+        }
+      });
+
+      screenshotFormat.addEventListener("change", updateScreenshotSettingsUi);
+      screenshotAspectRatio.addEventListener("change", updateScreenshotSettingsUi);
+      screenshotQuality.addEventListener("input", updateScreenshotQualityLabel);
       exampleSelect.addEventListener("change", async (event) => {
         if (isSyncingSelection) {
           return;
@@ -517,6 +1061,9 @@
       itemIdInput.value = queryItemId || lastViewed?.itemId?.trim() || defaultItemId;
       currentInputSource = queryItemId ? "query" : lastViewed?.itemId ? "restore" : "initial";
 
+      updateSyncButtonUi();
+      updateScreenshotSettingsUi();
+      updateScreenshotQualityLabel();
       await loadCuratedExamples();
       await loadWebMap();
     </script>
