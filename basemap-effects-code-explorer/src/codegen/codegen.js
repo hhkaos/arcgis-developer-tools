@@ -180,10 +180,6 @@ export function generateSnippet(baseLayers, referenceLayers, operationalLayers, 
     `import Basemap from "@arcgis/core/Basemap.js";`,
   ];
 
-  if (background?.color && mode === "2d") {
-    importLines.push(`import ColorBackground from "@arcgis/core/webdoc/support/ColorBackground.js";`);
-  }
-
   const lines = [
     ...importLines,
     "",
@@ -226,7 +222,12 @@ export function generateSnippet(baseLayers, referenceLayers, operationalLayers, 
     const { r, g, b, a } = background.color;
     if (mode === "2d") {
       const colorArr = [Math.round(r), Math.round(g), Math.round(b), a];
-      lines.push(`view.background = new ColorBackground({ color: ${JSON.stringify(colorArr)} });`);
+      lines.push(
+        "view.background = {",
+        '  type: "color",',
+        `  color: ${JSON.stringify(colorArr)},`,
+        "};",
+      );
     } else {
       const colorArr = [Math.round(r), Math.round(g), Math.round(b)];
       lines.push(`view.ground.surfaceColor = ${JSON.stringify(colorArr)};`);
